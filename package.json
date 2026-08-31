@@ -1,11 +1,16 @@
 {
   "name": "garage",
   "private": true,
-  "workspaces": ["bay", "packages/*", "apps/*"],
+  "workspaces": [
+    "bay",
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "dev": "bun run --cwd bay dev"
   },
   "dependencies": {
-    "@garage/sync": "workspace:*"
+    "@garage/sync": "workspace:*",
+    "yjs": "13.6.32"
   }
 }

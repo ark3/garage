@@ -6,6 +6,7 @@
       "name": "garage",
       "dependencies": {
         "@garage/sync": "workspace:*",
+        "yjs": "13.6.32",
       },
     },
     "apps/notes": {
