@@ -1,0 +1,8 @@
+{
+  "name": "garage",
+  "private": true,
+  "workspaces": ["bay", "packages/*", "apps/*"],
+  "scripts": {
+    "dev": "bun run --cwd bay dev"
+  }
+}

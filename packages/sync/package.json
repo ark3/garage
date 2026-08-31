@@ -1,0 +1,7 @@
+{
+  "name": "@garage/sync",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

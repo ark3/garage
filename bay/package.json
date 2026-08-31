@@ -1,0 +1,11 @@
+{
+  "name": "bay",
+  "private": true,
+  "scripts": {
+    "dev": "XDG_CONFIG_HOME=$PWD/.wrangler/xdg WRANGLER_LOG_PATH=$PWD/.wrangler/logs wrangler dev"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260828.1",
+    "wrangler": "4.127.1"
+  }
+}

@@ -43,6 +43,8 @@ bun workspaces.
 - bun is the package manager, bundler, and test runner.
   wrangler runs under **Node** — invoke it as `bun run dev` where the script is `wrangler dev`.
   Do not use `bunx --bun wrangler`.
+- The `dev` script sets `XDG_CONFIG_HOME` and `WRANGLER_LOG_PATH` to keep all wrangler state under `bay/.wrangler/`, because `$HOME` may be read-only when an agent runs it.
+  An eventual `deploy` script should omit that override so `wrangler login` credentials land in the real `~/.config`.
 
 ## Decisions already made — do not relitigate
 
