@@ -5,6 +5,11 @@ compatibility_date = "2026-08-28"
 [assets]
 directory = "./public"
 
+# Set both to enable real Access JWT verification; unset means stub identity.
+# [vars]
+# ACCESS_TEAM_DOMAIN = "<team>.cloudflareaccess.com"
+# ACCESS_AUD = "<access application audience tag>"
+
 [[durable_objects.bindings]]
 name = "GARAGE"
 class_name = "Garage"

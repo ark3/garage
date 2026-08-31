@@ -101,4 +101,4 @@ Never push.
 - A real SQLite file appears under `.wrangler/state` after the DO is touched once.
 - With the dev server up: `bun scripts/converge.ts` proves two clients converge, including across a simulated hibernation eviction (`/debug/amnesia`); `bun scripts/compaction.ts` proves the log compacts to one row with no data loss.
 - The scratch page at `/` (build with `bun run --cwd bay build:scratch`) is the human two-tab check.
-- `bun test` for `packages/*`.
+- `bun test` for `packages/*` (covers Access JWT verification with locally minted keys).

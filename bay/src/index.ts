@@ -2,11 +2,25 @@ import * as Y from "yjs";
 import * as syncProtocol from "y-protocols/sync";
 import * as encoding from "lib0/encoding";
 import * as decoding from "lib0/decoding";
-import { getUser } from "@garage/sync/identity";
+import { AuthError, getUser, type AccessConfig } from "@garage/sync/identity";
 import { toBase64, fromBase64, type BackupEnvelope } from "@garage/sync/backup";
 
 interface Env {
   GARAGE: DurableObjectNamespace;
+  ACCESS_TEAM_DOMAIN?: string;
+  ACCESS_AUD?: string;
+}
+
+// Config presence is the prod/local switch: vars unset → stub identity.
+function accessConfig(env: Env): AccessConfig | undefined {
+  return env.ACCESS_TEAM_DOMAIN && env.ACCESS_AUD
+    ? { teamDomain: env.ACCESS_TEAM_DOMAIN, aud: env.ACCESS_AUD }
+    : undefined;
+}
+
+function forbidAuthErrors(e: unknown): Response {
+  if (e instanceof AuthError) return new Response("forbidden\n", { status: 403 });
+  throw e;
 }
 
 // y-websocket message types. Awareness is relayed, never persisted.
@@ -20,12 +34,14 @@ type Attachment = { doc: string; user: string };
 
 export class Garage {
   ctx: DurableObjectState;
+  env: Env;
   // Working copies only. The DO may be evicted between any two messages
   // (hibernation), so every handler must reach docs through getDoc().
   docs = new Map<string, Y.Doc>();
 
-  constructor(ctx: DurableObjectState, _env: Env) {
+  constructor(ctx: DurableObjectState, env: Env) {
     this.ctx = ctx;
+    this.env = env;
     this.ctx.storage.sql.exec(`
       CREATE TABLE IF NOT EXISTS updates (
         seq INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,6 +57,10 @@ export class Garage {
   }
 
   async fetch(request: Request): Promise<Response> {
+    return this.handle(request).catch(forbidAuthErrors);
+  }
+
+  private async handle(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/health") {
       this.ctx.storage.sql.exec("SELECT 1");
@@ -60,7 +80,7 @@ export class Garage {
       return new Response("wiped\n");
     }
     if (url.pathname === "/api/backup") {
-      await getUser(request);
+      await getUser(request, accessConfig(this.env));
       const names = this.ctx.storage.sql
         .exec("SELECT DISTINCT doc FROM updates ORDER BY doc")
         .toArray();
@@ -77,7 +97,7 @@ export class Garage {
       return Response.json(envelope);
     }
     if (url.pathname === "/api/restore" && request.method === "POST") {
-      const user = await getUser(request);
+      const user = await getUser(request, accessConfig(this.env));
       const envelope = (await request.json()) as BackupEnvelope;
       if (envelope?.version !== 1 || typeof envelope.docs !== "object" || !envelope.docs) {
         return new Response("bad envelope\n", { status: 400 });
@@ -103,7 +123,7 @@ export class Garage {
     const m = url.pathname.match(/^\/doc\/([A-Za-z0-9_-]+)$/);
     if (m && request.headers.get("Upgrade") === "websocket") {
       const name = m[1];
-      const user = await getUser(request);
+      const user = await getUser(request, accessConfig(this.env));
       const pair = new WebSocketPair();
       this.ctx.acceptWebSocket(pair[1], [name]);
       pair[1].serializeAttachment({ doc: name, user } satisfies Attachment);
@@ -214,7 +234,9 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/whoami") {
-      return new Response((await getUser(request)) + "\n");
+      return getUser(request, accessConfig(env))
+        .then((user) => new Response(user + "\n"))
+        .catch(forbidAuthErrors);
     }
     if (
       url.pathname === "/health" ||
