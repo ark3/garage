@@ -59,11 +59,17 @@ Locally it returns a stub.
 This is the only place either mechanism may appear.
 Do not read `Cf-Access-Authenticated-User-Email` — it is a plain header and not independently trustworthy.
 
-**Actor and subject are separate.**
-My daughter has no account.
-A parent authenticates, then an app-level affordance says "act as <person>".
-So every stored mutation records both who authenticated and who it was on behalf of.
-Build this into the storage shape from the first table, not later.
+**Transport is hibernating WebSockets, wire format is the standard y-protocols sync protocol.**
+The DO uses the WebSocket Hibernation API so left-open tabs don't bill wall-clock.
+Consequences: no in-memory state is trustworthy (every handler hydrates docs from SQLite via one chokepoint), and per-socket facts live in `serializeAttachment`, never closures.
+One doc per socket, doc name in the URL path, stock `y-websocket` provider on the client.
+No custom envelope: nothing app-specific rides the wire.
+
+**Attribution: actor in the log, everything else in the doc.**
+Every stored update row records the actor — the authenticated email, stamped server-side from the socket's identity, never sent by the client.
+This is short-window forensics only; compaction deletes it along with the rows.
+App-facing attribution ("added by Maya") is app data inside the doc, defined per app — my daughter has no account, so acting-as is a client-side claim either way.
+There is no subject concept at the sync layer.
 
 **Compaction fires on wake, not on a schedule.**
 DOs hibernate; there is no nightly process.
@@ -81,8 +87,15 @@ No migration framework.
 The in-memory `Y.Doc` is rebuilt from SQLite on every wake and is not a cache we can lose.
 Apply, insert, then return.
 
+## Workflow
+
+Commit as you go: once a logical change is verified, commit it without asking — one logical change per commit, staging only the files that belong to it.
+Never push.
+
 ## Verification
 
 - `bun run dev` starts `wrangler dev`; `/health` responds.
 - A real SQLite file appears under `.wrangler/state` after the DO is touched once.
+- With the dev server up: `bun scripts/converge.ts` proves two clients converge, including across a simulated hibernation eviction (`/debug/amnesia`); `bun scripts/compaction.ts` proves the log compacts to one row with no data loss.
+- The scratch page at `/` (build with `bun run --cwd bay build:scratch`) is the human two-tab check.
 - `bun test` for `packages/*`.

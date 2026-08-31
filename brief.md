@@ -22,8 +22,8 @@ I would rather check the docs together than debug a plausible-looking config.
 
 ## After that, in order
 
-1. `packages/sync` — the Yjs client, the DO-side apply-and-persist path, and compaction.
-   Milestone: two browser tabs converge.
+1. ~~`packages/sync` — the Yjs client, the DO-side apply-and-persist path, and compaction.~~
+   Done 2026-08-30; verified by `scripts/converge.ts` and `scripts/compaction.ts`.
 2. `apps/shopping` — the shopping list.
    This is the real probe.
    It is the most demanding of the planned apps (concurrent edits, offline use), so if the pattern holds here the rest are downhill.
