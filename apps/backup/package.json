@@ -1,0 +1,7 @@
+{
+  "name": "@garage/backup",
+  "private": true,
+  "dependencies": {
+    "@garage/sync": "workspace:*"
+  }
+}

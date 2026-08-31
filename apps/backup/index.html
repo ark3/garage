@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>backup</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 40rem;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    h1 { font-size: 1.25rem; }
+    section { margin: 1.5rem 0; }
+    button { font-size: 1rem; padding: 0.4rem 0.9rem; cursor: pointer; }
+    #status { color: #555; }
+    #status.error { color: #c00; }
+    table { border-collapse: collapse; margin-top: 0.75rem; }
+    th, td { text-align: left; padding: 0.2rem 1rem 0.2rem 0; }
+    td.bytes { text-align: right; font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <h1>backup</h1>
+  <section>
+    <button id="download">Download backup</button>
+  </section>
+  <section>
+    <label>Restore from file: <input type="file" id="restore" accept="application/json"></label>
+  </section>
+  <p id="status"></p>
+  <div id="report"></div>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
