@@ -24,10 +24,11 @@ I would rather check the docs together than debug a plausible-looking config.
 
 1. ~~`packages/sync` — the Yjs client, the DO-side apply-and-persist path, and compaction.~~
    Done 2026-08-30; verified by `scripts/converge.ts` and `scripts/compaction.ts`.
-2. `apps/shopping` — the shopping list.
-   This is the real probe.
-   It is the most demanding of the planned apps (concurrent edits, offline use), so if the pattern holds here the rest are downhill.
+2. `apps/notes` — plain-text notes (Apple Notes / Simplenote shaped, no checklists).
+   This is the real probe: collaborative text is the hardest CRDT case, and it exercises offline (`y-indexeddb`), multiple docs, and in-doc attribution.
+   CodeMirror 6 with `y-codemirror.next`; authorship coloring is ephemeral presence (awareness cursors/selections), not durable per-character marks.
+   All editor dependencies are client-only; bay stays opaque-bytes.
 3. A backup app: an admin-only route that enumerates docs, returns `encodeStateAsUpdate` for each, and saves a file from the browser.
    Write the restore path at the same time.
 
-Later apps: flashcards, private family chat.
+Later apps: shopping list (deferred — lots of fiddly domain details to design), flashcards, private family chat.
