@@ -169,6 +169,9 @@ export class Garage {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname === "/whoami") {
+      return new Response((await getUser(request)) + "\n");
+    }
     if (
       url.pathname === "/health" ||
       url.pathname.startsWith("/doc/") ||
