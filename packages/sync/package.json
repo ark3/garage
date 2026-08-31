@@ -3,7 +3,8 @@
   "private": true,
   "exports": {
     ".": "./src/index.ts",
-    "./identity": "./src/identity.ts"
+    "./identity": "./src/identity.ts",
+    "./backup": "./src/backup.ts"
   },
   "dependencies": {
     "y-websocket": "3.1.0",

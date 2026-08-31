@@ -3,6 +3,7 @@ import * as syncProtocol from "y-protocols/sync";
 import * as encoding from "lib0/encoding";
 import * as decoding from "lib0/decoding";
 import { getUser } from "@garage/sync/identity";
+import { toBase64, fromBase64, type BackupEnvelope } from "@garage/sync/backup";
 
 interface Env {
   GARAGE: DurableObjectNamespace;
@@ -50,6 +51,49 @@ export class Garage {
         .exec("SELECT doc, COUNT(*) AS n FROM updates GROUP BY doc")
         .toArray();
       return Response.json(rows);
+    }
+    if (url.pathname === "/debug/wipe") {
+      // Local-dev only, like the other debug routes: destroys all state so
+      // the restore path can be proven against a genuinely empty server.
+      this.ctx.storage.sql.exec("DELETE FROM updates");
+      this.docs.clear();
+      return new Response("wiped\n");
+    }
+    if (url.pathname === "/api/backup") {
+      await getUser(request);
+      const names = this.ctx.storage.sql
+        .exec("SELECT DISTINCT doc FROM updates ORDER BY doc")
+        .toArray();
+      const docs: Record<string, string> = {};
+      for (const row of names) {
+        const name = row.doc as string;
+        docs[name] = toBase64(Y.encodeStateAsUpdate(this.getDoc(name)));
+      }
+      const envelope: BackupEnvelope = {
+        version: 1,
+        createdAt: new Date().toISOString(),
+        docs,
+      };
+      return Response.json(envelope);
+    }
+    if (url.pathname === "/api/restore" && request.method === "POST") {
+      const user = await getUser(request);
+      const envelope = (await request.json()) as BackupEnvelope;
+      if (envelope?.version !== 1 || typeof envelope.docs !== "object" || !envelope.docs) {
+        return new Response("bad envelope\n", { status: 400 });
+      }
+      // Merge, not replace: each snapshot goes through the normal persist
+      // path, so newer edits survive and restores are roughly idempotent.
+      const restored: Record<string, number> = {};
+      for (const [name, b64] of Object.entries(envelope.docs)) {
+        if (!/^[A-Za-z0-9_-]+$/.test(name) || typeof b64 !== "string") {
+          return new Response(`bad doc entry: ${name}\n`, { status: 400 });
+        }
+        const update = fromBase64(b64);
+        this.persistAndApply(name, this.getDoc(name), update, user);
+        restored[name] = update.byteLength;
+      }
+      return Response.json({ restored });
     }
     if (url.pathname === "/debug/amnesia") {
       // Simulates hibernation eviction: sockets survive, heap state does not.
@@ -139,7 +183,7 @@ export class Garage {
     doc: Y.Doc,
     update: Uint8Array,
     actor: string,
-    from: WebSocket,
+    from?: WebSocket,
   ) {
     if (update.byteLength <= 2) return; // empty diff from SyncStep2
     this.ctx.storage.sql.exec(
@@ -175,6 +219,7 @@ export default {
     if (
       url.pathname === "/health" ||
       url.pathname.startsWith("/doc/") ||
+      url.pathname.startsWith("/api/") ||
       url.pathname.startsWith("/debug/")
     ) {
       const stub = env.GARAGE.get(env.GARAGE.idFromName("garage"));
