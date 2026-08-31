@@ -1,6 +1,15 @@
-// Identity lives behind exactly this one function. In production it will
-// verify the Cf-Access-Jwt-Assertion JWT against the Access public keys.
-// Locally it returns a stub.
-export async function getUser(_request: Request): Promise<string> {
-  return "dev@localhost";
+import * as Y from "yjs";
+import { WebsocketProvider } from "y-websocket";
+
+export { getUser } from "./identity";
+
+// Connect a new Y.Doc to the bay DO. Default server URL assumes the app is
+// served by the same Worker (one origin, no CORS).
+export function openDoc(name: string, serverUrl?: string) {
+  const base =
+    serverUrl ??
+    `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/doc`;
+  const doc = new Y.Doc();
+  const provider = new WebsocketProvider(base, name, doc);
+  return { doc, provider };
 }

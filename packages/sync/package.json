@@ -2,6 +2,11 @@
   "name": "@garage/sync",
   "private": true,
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./identity": "./src/identity.ts"
+  },
+  "dependencies": {
+    "y-websocket": "3.1.0",
+    "yjs": "13.6.32"
   }
 }

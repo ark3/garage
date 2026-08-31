@@ -4,5 +4,8 @@
   "workspaces": ["bay", "packages/*", "apps/*"],
   "scripts": {
     "dev": "bun run --cwd bay dev"
+  },
+  "dependencies": {
+    "@garage/sync": "workspace:*"
   }
 }

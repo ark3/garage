@@ -2,6 +2,9 @@ name = "bay"
 main = "src/index.ts"
 compatibility_date = "2026-08-28"
 
+[assets]
+directory = "./public"
+
 [[durable_objects.bindings]]
 name = "GARAGE"
 class_name = "Garage"

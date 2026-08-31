@@ -2,7 +2,14 @@
   "name": "bay",
   "private": true,
   "scripts": {
-    "dev": "XDG_CONFIG_HOME=$PWD/.wrangler/xdg WRANGLER_LOG_PATH=$PWD/.wrangler/logs wrangler dev"
+    "dev": "XDG_CONFIG_HOME=$PWD/.wrangler/xdg WRANGLER_LOG_PATH=$PWD/.wrangler/logs wrangler dev",
+    "build:scratch": "bun build scratch/main.ts --outdir public"
+  },
+  "dependencies": {
+    "@garage/sync": "workspace:*",
+    "lib0": "0.2.117",
+    "y-protocols": "1.0.7",
+    "yjs": "13.6.32"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260828.1",
