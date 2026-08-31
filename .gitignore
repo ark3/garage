@@ -1,3 +1,4 @@
 node_modules/
 .wrangler/
 bay/public/main.js
+bay/public/notes/

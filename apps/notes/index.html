@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>notes</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      height: 100dvh;
+      display: flex;
+    }
+    aside {
+      width: 16rem;
+      flex-shrink: 0;
+      border-right: 1px solid #ddd;
+      display: flex;
+      flex-direction: column;
+      background: #fafafa;
+    }
+    aside header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid #ddd;
+    }
+    aside h1 { font-size: 1rem; margin: 0; }
+    #new {
+      font-size: 1.1rem;
+      line-height: 1;
+      padding: 0.2rem 0.55rem;
+      cursor: pointer;
+    }
+    #list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      overflow-y: auto;
+      flex: 1;
+    }
+    #list li {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      gap: 0.5rem;
+    }
+    #list li.selected { background: #e6efff; }
+    #list li .title {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #list li .title.untitled { color: #999; font-style: italic; }
+    #list li .delete {
+      border: none;
+      background: none;
+      color: #999;
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 0 0.2rem;
+    }
+    #list li .delete:hover { color: #c00; }
+    main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    #editor { flex: 1; min-height: 0; }
+    #editor .cm-editor { height: 100%; font-size: 1rem; }
+    #editor .cm-scroller { font-family: inherit; }
+    #placeholder {
+      color: #999;
+      padding: 2rem;
+      text-align: center;
+    }
+    @media (max-width: 600px) {
+      body { flex-direction: column; }
+      aside {
+        width: 100%;
+        max-height: 40dvh;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+      }
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <header>
+      <h1>notes</h1>
+      <button id="new" title="New note">+</button>
+    </header>
+    <ul id="list"></ul>
+  </aside>
+  <main>
+    <div id="editor"><div id="placeholder">Select or create a note</div></div>
+  </main>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
