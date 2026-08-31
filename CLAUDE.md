@@ -53,11 +53,14 @@ Not one per app, not one per document.
 Docs are loaded lazily into a `Map` of name → `Y.Doc` on first touch, so wake cost is proportional to what's actually used.
 
 **Identity lives behind exactly one function.**
-`getUser(request)` returns the authenticated email.
-In production it verifies the JWT in `Cf-Access-Jwt-Assertion` against the Access public keys.
+`getUser(request)` returns the authenticated identity: a person's email, or for headless clients the name of a Cloudflare Access service token (`common_name` claim).
+In production it verifies the JWT in `Cf-Access-Jwt-Assertion` against the Access public keys; both flows produce that same JWT, so this stays one verification path.
 Locally it returns a stub.
 This is the only place either mechanism may appear.
 Do not read `Cf-Access-Authenticated-User-Email` — it is a plain header and not independently trustworthy.
+Non-human clients (backup job, kitchen display, automations) are just service tokens; the actor column records the token name.
+Authorization is deliberately all-or-nothing for now: any authenticated identity can read/write every doc.
+Scope checks, if ever needed, belong in the DO keyed on the actor string — do not build them speculatively.
 
 **Transport is hibernating WebSockets, wire format is the standard y-protocols sync protocol.**
 The DO uses the WebSocket Hibernation API so left-open tabs don't bill wall-clock.
