@@ -28,7 +28,7 @@ I would rather check the docs together than debug a plausible-looking config.
    This is the real probe: collaborative text is the hardest CRDT case, and it exercises offline (`y-indexeddb`), multiple docs, and in-doc attribution.
    CodeMirror 6 with `y-codemirror.next`; authorship coloring is ephemeral presence (awareness cursors/selections), not durable per-character marks.
    All editor dependencies are client-only; bay stays opaque-bytes.
-3. A backup app: an admin-only route that enumerates docs, returns `encodeStateAsUpdate` for each, and saves a file from the browser.
-   Write the restore path at the same time.
+3. ~~A backup app: routes that enumerate docs and return `encodeStateAsUpdate` for each, a browser page that saves/restores a file.~~
+   Done 2026-08-30; restore is merge-semantics, full wipe-and-restore cycle proven by `scripts/backup-cycle.ts`.
 
 Later apps: shopping list (deferred — lots of fiddly domain details to design), flashcards, private family chat.
