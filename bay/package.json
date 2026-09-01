@@ -2,7 +2,7 @@
   "name": "bay",
   "private": true,
   "scripts": {
-    "dev": "XDG_CONFIG_HOME=$PWD/.wrangler/xdg WRANGLER_LOG_PATH=$PWD/.wrangler/logs wrangler dev",
+    "dev": "XDG_CONFIG_HOME=$PWD/.wrangler/xdg WRANGLER_LOG_PATH=$PWD/.wrangler/logs wrangler dev --ip 0.0.0.0",
     "build:scratch": "bun build scratch/main.ts --outdir public",
     "build:notes": "mkdir -p public/notes && cp ../apps/notes/index.html public/notes/ && bun build ../apps/notes/src/main.ts --outdir public/notes",
     "build:backup": "mkdir -p public/backup && cp ../apps/backup/index.html public/backup/ && bun build ../apps/backup/src/main.ts --outdir public/backup"

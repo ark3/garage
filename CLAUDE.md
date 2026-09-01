@@ -44,6 +44,7 @@ bun workspaces.
   wrangler runs under **Node** — invoke it as `bun run dev` where the script is `wrangler dev`.
   Do not use `bunx --bun wrangler`.
 - The `dev` script sets `XDG_CONFIG_HOME` and `WRANGLER_LOG_PATH` to keep all wrangler state under `bay/.wrangler/`, because `$HOME` may be read-only when an agent runs it.
+- The `dev` script binds `0.0.0.0`: Abhay considers LAN exposure safe for the whole development journey, so devices on the home network can always reach the dev server.
   An eventual `deploy` script should omit that override so `wrangler login` credentials land in the real `~/.config`.
 
 ## Decisions already made — do not relitigate
