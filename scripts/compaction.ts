@@ -1,16 +1,15 @@
-// Compaction check. Run while `bun run dev` is up:
+// Compaction check. Run while `bun run dev:test` is up:
 //   bun scripts/compaction.ts
 // Pushes enough updates to cross the threshold, forces a cold start, and
 // asserts the log collapses to one row with no data loss.
 
 import { openDoc } from "@garage/sync";
-
-const SERVER = "ws://localhost:8787/doc";
+import { HTTP, SERVER } from "./target";
 const N = 250; // > COMPACT_THRESHOLD (200)
 const room = `compact-${Date.now()}`;
 
 async function rowsFor(doc: string): Promise<number> {
-  const stats = (await (await fetch("http://localhost:8787/debug/stats")).json()) as {
+  const stats = (await (await fetch(`${HTTP}/debug/stats`)).json()) as {
     doc: string;
     n: number;
   }[];
@@ -45,7 +44,7 @@ if (n < MIN_ROWS) throw new Error(`expected >${MIN_ROWS - 1} rows persisted, saw
 console.log(`ok: ${n} rows persisted`);
 
 writer.provider.destroy();
-await fetch("http://localhost:8787/debug/amnesia");
+await fetch(`${HTTP}/debug/amnesia`);
 
 // A fresh client triggers hydration, which triggers compaction.
 const reader = openDoc(room, SERVER);

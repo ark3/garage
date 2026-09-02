@@ -1,11 +1,10 @@
-// Integration check for the sync path. Run while `bun run dev` is up:
+// Integration check for the sync path. Run while `bun run dev:test` is up:
 //   bun scripts/converge.ts [room]
 // Two clients connect, each adds an item, then we assert both see both —
 // including across a simulated hibernation eviction (/debug/amnesia).
 
 import { openDoc } from "@garage/sync";
-
-const SERVER = "ws://localhost:8787/doc";
+import { HTTP, SERVER } from "./target";
 const room = process.argv[2] ?? `converge-${Date.now()}`;
 
 function items(doc: import("yjs").Doc) {
@@ -31,7 +30,7 @@ items(a.doc).push([{ text: "from-A" }]);
 items(b.doc).push([{ text: "from-B" }]);
 await until(() => has(a.doc, "from-B") && has(b.doc, "from-A"), "initial convergence");
 
-const amnesia = await fetch("http://localhost:8787/debug/amnesia");
+const amnesia = await fetch(`${HTTP}/debug/amnesia`);
 if (!amnesia.ok) throw new Error("amnesia route failed");
 
 items(b.doc).push([{ text: "post-amnesia" }]);

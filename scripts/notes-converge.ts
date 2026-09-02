@@ -1,4 +1,4 @@
-// Integration check for the notes data model. Run while `bun run dev` is up:
+// Integration check for the notes data model. Run while `bun run dev:test` is up:
 //   bun scripts/notes-converge.ts [room]
 // Two headless clients edit the same note's Y.Text concurrently (interleaved
 // inserts), converge to identical strings, survive /debug/amnesia, and a
@@ -6,8 +6,7 @@
 
 import * as Y from "yjs";
 import { openDoc } from "@garage/sync";
-
-const SERVER = "ws://localhost:8787/doc";
+import { HTTP, SERVER } from "./target";
 const room = process.argv[2] ?? `notes-converge-${Date.now()}`;
 
 function notes(doc: Y.Doc) {
@@ -58,7 +57,7 @@ const converged = () => {
 };
 await until(converged, "interleaved inserts converge to identical strings");
 
-const amnesia = await fetch("http://localhost:8787/debug/amnesia");
+const amnesia = await fetch(`${HTTP}/debug/amnesia`);
 if (!amnesia.ok) throw new Error("amnesia route failed");
 
 // A second note plus more text edits after the simulated eviction.

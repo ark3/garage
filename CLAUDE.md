@@ -103,8 +103,13 @@ Never push.
 
 ## Verification
 
+Two server instances, two roles:
+`bun run dev` (port 8787, LAN-exposed, state in `.wrangler/state`) is the family's server and holds real data — never run scripts against it.
+`bun run dev:test` (port 8788, localhost-only, state in `.wrangler/test-state`) is disposable; all integration scripts default to it via `scripts/target.ts`, and pointing them elsewhere requires setting `GARAGE_URL` explicitly.
+This matters because `scripts/backup-cycle.ts` wipes whatever server it targets.
+
 - `bun run dev` starts `wrangler dev`; `/health` responds.
 - A real SQLite file appears under `.wrangler/state` after the DO is touched once.
-- With the dev server up: `bun scripts/converge.ts` proves two clients converge, including across a simulated hibernation eviction (`/debug/amnesia`); `bun scripts/compaction.ts` proves the log compacts to one row with no data loss.
+- With the test server up: `bun scripts/converge.ts` proves two clients converge, including across a simulated hibernation eviction (`/debug/amnesia`); `bun scripts/compaction.ts` proves the log compacts to one row with no data loss.
 - The scratch page at `/` (build with `bun run --cwd bay build:scratch`) is the human two-tab check.
 - `bun test` for `packages/*` (covers Access JWT verification with locally minted keys).

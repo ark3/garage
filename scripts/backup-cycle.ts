@@ -1,4 +1,4 @@
-// Backup/restore cycle check. Run while `bun run dev` is up:
+// Backup/restore cycle check. Run while `bun run dev:test` is up:
 //   bun scripts/backup-cycle.ts
 // Seeds two docs (one pushed past the compaction threshold so a snapshot row
 // is covered), takes a backup, wipes the server, proves restore recovers
@@ -8,9 +8,8 @@
 import * as Y from "yjs";
 import { openDoc } from "@garage/sync";
 import { fromBase64, type BackupEnvelope } from "@garage/sync/backup";
+import { HTTP, SERVER } from "./target";
 
-const HTTP = "http://localhost:8787";
-const SERVER = "ws://localhost:8787/doc";
 const stamp = Date.now();
 const roomA = `backup-a-${stamp}`;
 const roomB = `backup-b-${stamp}`; // gets compacted
