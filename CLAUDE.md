@@ -102,6 +102,18 @@ Commit as you go: once a logical change is verified, commit it without asking �
 Never push.
 App-building conventions (data model first, doc-name churn, promotion freezes the shape, the y-indexeddb trap) live in `apps/WORKFLOW.md` — read it before working under `apps/`.
 
+**Run `card status` first in every session.**
+Work comes in two sizes.
+Do quick work — anything that fits in a sitting — directly; no cards.
+Milestone-sized work — anything that would earn a plan doc — runs on cards; the deck is private to this machine and never committed.
+If a request looks bigger than a sitting, say so and propose cards rather than diving in; Abhay can always overrule in either direction.
+The plan doc's name is the ticket label; a milestone's cards all close before it does.
+Authoring cards is collaborative and is where the grounding happens: paths, what done looks like, and a sweep of `closed/` for prior art.
+The deck is working memory; the repo is the record.
+Close notes hold evidence as it happens, but durable findings graduate to committed docs in one sweep when the milestone closes — the milestone is not done until that sweep has run and the plan doc is deleted.
+Exception: a finding that is hazardous to leave unrecorded graduates immediately.
+Scope creep converts into new cards, not drive-by changes.
+
 ## Verification
 
 Two server instances, two roles:
