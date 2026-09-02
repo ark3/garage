@@ -3,31 +3,38 @@
 Durable project facts (architecture, runtime rules, settled decisions) live in `CLAUDE.md`.
 This file is the task sequence; update or delete milestones as they complete.
 
-## First task — scope strictly to this
+## Done
 
-Set up the scaffold and stop.
-Do not build an app yet.
+1. Scaffold: workspaces, `bay/` with the DO class, `/health`, dev script.
+2. `packages/sync` + the DO apply-and-persist path and compaction (2026-08-30; `scripts/converge.ts`, `scripts/compaction.ts`).
+3. `apps/notes` (2026-09-01; human two-tab check, `scripts/notes-converge.ts`).
+4. Backup app with merge-semantics restore (2026-08-30; `scripts/backup-cycle.ts`).
+5. Real Access JWT verification behind `getUser`, config-gated (`bun test`).
 
-1. Root `package.json` with bun workspaces covering `bay`, `packages/*`, `apps/*`.
-   `.gitignore` including `.wrangler/` and `node_modules/`.
-2. `bay/` with `wrangler.toml`, one DO class, and a `/health` route returning something trivial.
-   Get the `migrations` tag and `new_sqlite_classes` right — this is the most common source of confusing errors later.
-3. `packages/sync/` with `getUser(request)` stubbed and nothing else.
-4. A `dev` script such that `bun run dev` starts `wrangler dev`.
+## Next, in order
 
-Success looks like: `bun run dev` responds on `/health`, and a real SQLite file appears under `.wrangler/state` after the DO is touched once.
+1. **Deploy.**
+   Cloudflare account, `wrangler deploy`, an Access application covering the whole origin, `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` vars.
+   Mint one Access service token for headless clients (backups, scripts).
+   Fence or remove the unauthenticated `/debug/*` routes before anything is public.
+   Add a `deploy` script without the XDG/LAN-bind overrides from `dev`, so `wrangler login` credentials land in the real `~/.config`.
+   Success: `/whoami` returns the real email from a phone off the LAN, and `scripts/converge.ts` + `scripts/backup-cycle.ts` pass against production using the service token.
 
-Tell me what you're unsure about rather than guessing, especially anything where the Cloudflare API may have moved since your training data.
-I would rather check the docs together than debug a plausible-looking config.
+2. **Six-week real-use trial of notes.**
+   Criteria are written now and graded at the end, not retrofitted:
+   family uses it unprompted; zero data loss and zero manual data repairs; ops silence (nothing to babysit); fixes stay evening-sized.
+   During the trial, establish the off-machine backup habit: a scheduled fetch of `/api/backup` using the service token — also the first real exercise of the service-token identity path.
+   Notes polish happens here too, driven by what use reveals, not speculation.
 
-## After that, in order
+3. **Design spike before chat (a page of writing, not code).**
+   Two questions: how do notifications work without the server reading doc contents (e.g. Web Push carrying only "doc X changed"), and what does an append-forever doc do to tombstones, snapshot size, and compaction.
+   The spike exists so chat validates answers instead of discovering problems mid-build.
 
-1. ~~`packages/sync` — the Yjs client, the DO-side apply-and-persist path, and compaction.~~
-   Done 2026-08-30; verified by `scripts/converge.ts` and `scripts/compaction.ts`.
-2. ~~`apps/notes` — plain-text notes (Apple Notes / Simplenote shaped, no checklists).~~
-   Done 2026-09-01: human two-tab check passed (convergence, cursors); verified headlessly by `scripts/notes-converge.ts`.
-   The app itself is rough and expected to grow; the platform pattern it was probing holds.
-3. ~~A backup app: routes that enumerate docs and return `encodeStateAsUpdate` for each, a browser page that saves/restores a file.~~
-   Done 2026-08-30; restore is merge-semantics, full wipe-and-restore cycle proven by `scripts/backup-cycle.ts`.
+4. **`apps/chat` — private family chat.**
+   The deliberate stress test: unbounded doc growth, notifications, presence beyond cursors; possibly private channels, which would be the first real authorization test.
 
-Later apps: shopping list (deferred — lots of fiddly domain details to design), flashcards, private family chat.
+5. **`apps/flashcards`.**
+   Stresses per-person data and timed events (spaced-repetition scheduling) — the case where cron triggers tempt.
+   Whether scheduling lives client-side or couples to a platform primitive is an explicit decision per the coupling rule in `CLAUDE.md`.
+
+Later: shopping list (deferred — lots of fiddly domain details to design).
