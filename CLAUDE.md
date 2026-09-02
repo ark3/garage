@@ -100,6 +100,7 @@ Reach for one only after writing down the portable alternative and consciously r
 
 Commit as you go: once a logical change is verified, commit it without asking — one logical change per commit, staging only the files that belong to it.
 Never push.
+App-building conventions (data model first, doc-name churn, promotion freezes the shape, the y-indexeddb trap) live in `apps/WORKFLOW.md` — read it before working under `apps/`.
 
 ## Verification
 
