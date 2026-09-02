@@ -91,6 +91,11 @@ No migration framework.
 The in-memory `Y.Doc` is rebuilt from SQLite on every wake and is not a cache we can lose.
 Apply, insert, then return.
 
+**Coupling to a second Cloudflare primitive is a decision, not a default.**
+The exit price today is one file: `bay/src/index.ts` is the only Cloudflare-coupled code, portable to an ordinary Bun process because of four choices — standard wire protocol, identity behind one function, opaque update blobs, a proven restore path.
+KV, queues, R2, cron triggers each raise that price.
+Reach for one only after writing down the portable alternative and consciously rejecting it.
+
 ## Workflow
 
 Commit as you go: once a logical change is verified, commit it without asking — one logical change per commit, staging only the files that belong to it.
