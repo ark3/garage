@@ -20,11 +20,16 @@ The real-use trial attaches to whatever app the family actually wants — chat a
    Cloudflare account, `wrangler deploy`, an Access application covering the whole origin, `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` vars.
    Order matters: create the Access application and set both vars *before* the first `wrangler deploy` — with the vars unset the Worker runs the `dev@localhost` stub, and the stub must never be reachable from the internet.
    (Vars set but Access misconfigured fails closed with "missing Access JWT", which is the safe direction.)
-   Mint one Access service token for headless clients (backups, scripts).
-   Decide how the kid's device authenticates — she has no account, so it's a shared device behind a parent's Access identity, a service-token device, or an email she does have.
+   Auth decisions (2026-09-02):
+   - Identity provider is One-time PIN, policy includes the three family emails — the kid uses her own Gmail (PIN fetched via private window when needed), so no acting-as affordance exists app-side. Session duration 1 month.
+   - Logout, when an app wants it, is a plain link to `/cdn-cgi/access/logout` — no conditional rendering; under `wrangler dev` it just 404s, and the apps carry no notion of Access.
+   - Service tokens are per-client, minted as clients appear (test scripts first, backup job when the trial's backup habit starts), never speculatively — so the actor column distinguishes clients and revocation is per-device. Not a plan limit (free tier allows 50); the Service Auth policy is separate from the family Allow policy.
+   - Each token lives in a file outside the repo, default `~/.config/garage/tokens/<client>`, env-var override; scripts read it at use time (read-only home in the sandbox is fine). If `GARAGE_URL` is non-local and the token file is missing, fail with a clear message before touching the network.
+   - Scripts must send `CF-Access-Client-Id`/`CF-Access-Client-Secret` on plain fetches *and* WebSocket handshakes — Access checks the WS upgrade at the edge. Local runs send nothing.
+   - Domain: registration stays at Hover; delegate nameservers to Cloudflare (free plan needs the full zone — subdomain delegation is enterprise-only). Recreate existing DNS records in Cloudflare.
    The `/debug/*` routes are already fenced (2026-09-01): stats/amnesia require an authenticated identity, and wipe does not exist when Access is configured — spot-check all three against production anyway.
-   Add a `deploy` script without the XDG/LAN-bind overrides from `dev`, so `wrangler login` credentials land in the real `~/.config`.
-   Success: `/whoami` returns the real email from a phone off the LAN, and `scripts/converge.ts` + `scripts/backup-cycle.ts` pass against production using the service token.
+   Add a `deploy` script without the XDG/LAN-bind overrides from `dev`, so `wrangler login` credentials land in the real `~/.config` (those credentials are consumed only by wrangler itself; deploys never touch service tokens).
+   Success: `/whoami` returns the real email from a phone off the LAN, and `scripts/converge.ts` + `scripts/backup-cycle.ts` pass against production using a service token — noting `backup-cycle.ts` wipes its target, so run it against production only before real data exists.
 
 2. **`apps/flashcards` — the first family-involving app.**
    Primarily for the kid, also Abhay; the most straightforward way to get others using the platform.
