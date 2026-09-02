@@ -6,9 +6,17 @@ compatibility_date = "2026-08-28"
 directory = "./public"
 
 # Set both to enable real Access JWT verification; unset means stub identity.
+# Per brief.md (Deploy): fill these in BEFORE the first `wrangler deploy` —
+# the stub must never be reachable from the internet.
 # [vars]
 # ACCESS_TEAM_DOMAIN = "<team>.cloudflareaccess.com"
 # ACCESS_AUD = "<access application audience tag>"
+
+# Production hostname — a Workers custom domain on the Cloudflare zone.
+# Fill in alongside the vars above once the zone and Access app exist.
+# [[routes]]
+# pattern = "<app hostname>"
+# custom_domain = true
 
 [[durable_objects.bindings]]
 name = "GARAGE"
