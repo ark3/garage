@@ -18,6 +18,8 @@ The real-use trial attaches to whatever app the family actually wants — chat a
 
 1. **Deploy.**
    Cloudflare account, `wrangler deploy`, an Access application covering the whole origin, `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` vars.
+   Order matters: create the Access application and set both vars *before* the first `wrangler deploy` — with the vars unset the Worker runs the `dev@localhost` stub, and the stub must never be reachable from the internet.
+   (Vars set but Access misconfigured fails closed with "missing Access JWT", which is the safe direction.)
    Mint one Access service token for headless clients (backups, scripts).
    Decide how the kid's device authenticates — she has no account, so it's a shared device behind a parent's Access identity, a service-token device, or an email she does have.
    The `/debug/*` routes are already fenced (2026-09-01): stats/amnesia require an authenticated identity, and wipe does not exist when Access is configured — spot-check all three against production anyway.
