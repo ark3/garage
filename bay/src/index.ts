@@ -67,14 +67,16 @@ export class Garage {
       return new Response("ok\n");
     }
     if (url.pathname === "/debug/stats") {
+      await getUser(request, accessConfig(this.env));
       const rows = this.ctx.storage.sql
         .exec("SELECT doc, COUNT(*) AS n FROM updates GROUP BY doc")
         .toArray();
       return Response.json(rows);
     }
-    if (url.pathname === "/debug/wipe") {
-      // Local-dev only, like the other debug routes: destroys all state so
-      // the restore path can be proven against a genuinely empty server.
+    if (url.pathname === "/debug/wipe" && !accessConfig(this.env)) {
+      // Stub-identity only: with real Access configured this route does not
+      // exist (404). It destroys all state so the restore path can be proven
+      // against a genuinely empty server; production recovery is /api/restore.
       this.ctx.storage.sql.exec("DELETE FROM updates");
       this.docs.clear();
       return new Response("wiped\n");
@@ -117,6 +119,7 @@ export class Garage {
     }
     if (url.pathname === "/debug/amnesia") {
       // Simulates hibernation eviction: sockets survive, heap state does not.
+      await getUser(request, accessConfig(this.env));
       this.docs.clear();
       return new Response("forgot\n");
     }

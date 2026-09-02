@@ -16,7 +16,7 @@ This file is the task sequence; update or delete milestones as they complete.
 1. **Deploy.**
    Cloudflare account, `wrangler deploy`, an Access application covering the whole origin, `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` vars.
    Mint one Access service token for headless clients (backups, scripts).
-   Fence or remove the unauthenticated `/debug/*` routes before anything is public.
+   The `/debug/*` routes are already fenced (2026-09-01): stats/amnesia require an authenticated identity, and wipe does not exist when Access is configured — spot-check all three against production anyway.
    Add a `deploy` script without the XDG/LAN-bind overrides from `dev`, so `wrangler login` credentials land in the real `~/.config`.
    Success: `/whoami` returns the real email from a phone off the LAN, and `scripts/converge.ts` + `scripts/backup-cycle.ts` pass against production using the service token.
 
