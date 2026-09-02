@@ -24,10 +24,9 @@ I would rather check the docs together than debug a plausible-looking config.
 
 1. ~~`packages/sync` — the Yjs client, the DO-side apply-and-persist path, and compaction.~~
    Done 2026-08-30; verified by `scripts/converge.ts` and `scripts/compaction.ts`.
-2. `apps/notes` — plain-text notes (Apple Notes / Simplenote shaped, no checklists).
-   This is the real probe: collaborative text is the hardest CRDT case, and it exercises offline (`y-indexeddb`), multiple docs, and in-doc attribution.
-   CodeMirror 6 with `y-codemirror.next`; authorship coloring is ephemeral presence (awareness cursors/selections), not durable per-character marks.
-   All editor dependencies are client-only; bay stays opaque-bytes.
+2. ~~`apps/notes` — plain-text notes (Apple Notes / Simplenote shaped, no checklists).~~
+   Done 2026-09-01: human two-tab check passed (convergence, cursors); verified headlessly by `scripts/notes-converge.ts`.
+   The app itself is rough and expected to grow; the platform pattern it was probing holds.
 3. ~~A backup app: routes that enumerate docs and return `encodeStateAsUpdate` for each, a browser page that saves/restores a file.~~
    Done 2026-08-30; restore is merge-semantics, full wipe-and-restore cycle proven by `scripts/backup-cycle.ts`.
 
