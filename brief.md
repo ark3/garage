@@ -27,8 +27,13 @@ The real-use trial attaches to whatever app the family actually wants — chat a
    - Each token lives in a file outside the repo, default `~/.config/garage/tokens/<client>`, env-var override; scripts read it at use time (read-only home in the sandbox is fine). If `GARAGE_URL` is non-local and the token file is missing, fail with a clear message before touching the network.
    - Scripts must send `CF-Access-Client-Id`/`CF-Access-Client-Secret` on plain fetches *and* WebSocket handshakes — Access checks the WS upgrade at the edge. Local runs send nothing.
    - Domain: registration stays at Hover; delegate nameservers to Cloudflare (free plan needs the full zone — subdomain delegation is enterprise-only). Recreate existing DNS records in Cloudflare.
+   Sequence (A blocks B blocks D; C can run in parallel with A/B and needs no sandbox escape):
+   - A. Account + domain (Abhay): Cloudflare account; add the chosen Hover domain as a zone; switch nameservers at Hover; wait for activation (minutes to a day); pick the app hostname.
+   - B. Zero Trust (Abhay, dashboard): create the team (fixes `ACCESS_TEAM_DOMAIN`); enable One-time PIN; create the Access app on the hostname at `/*` per the decisions above (its audience tag is `ACCESS_AUD`); mint the first service token + Service Auth policy.
+   - C. Repo (agent): `deploy` script without the XDG/LAN-bind overrides from `dev`, so `wrangler login` credentials land in the real `~/.config` (those credentials are consumed only by wrangler itself; deploys never touch service tokens); `[vars]` + custom-domain config in `wrangler.toml`; scripts learn the token-file/header behavior above.
+   - D. First deploy (Abhay's terminal, outside the sandbox): `wrangler login`, then `bun run deploy` — only once B and C are done, per the ordering rule above.
+   - E. Verify: the success criteria below, plus the `/debug/*` spot-checks, plus the kid's device logging in with her Gmail and holding its month-long session.
    The `/debug/*` routes are already fenced (2026-09-01): stats/amnesia require an authenticated identity, and wipe does not exist when Access is configured — spot-check all three against production anyway.
-   Add a `deploy` script without the XDG/LAN-bind overrides from `dev`, so `wrangler login` credentials land in the real `~/.config` (those credentials are consumed only by wrangler itself; deploys never touch service tokens).
    Success: `/whoami` returns the real email from a phone off the LAN, and `scripts/converge.ts` + `scripts/backup-cycle.ts` pass against production using a service token — noting `backup-cycle.ts` wipes its target, so run it against production only before real data exists.
 
 2. **`apps/flashcards` — the first family-involving app.**
