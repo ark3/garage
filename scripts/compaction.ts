@@ -3,13 +3,12 @@
 // Pushes enough updates to cross the threshold, forces a cold start, and
 // asserts the log collapses to one row with no data loss.
 
-import { openDoc } from "@garage/sync";
-import { HTTP, SERVER } from "./target";
+import { HTTP, open, sfetch } from "./target";
 const N = 250; // > COMPACT_THRESHOLD (200)
 const room = `compact-${Date.now()}`;
 
 async function rowsFor(doc: string): Promise<number> {
-  const stats = (await (await fetch(`${HTTP}/debug/stats`)).json()) as {
+  const stats = (await (await sfetch(`${HTTP}/debug/stats`)).json()) as {
     doc: string;
     n: number;
   }[];
@@ -25,7 +24,7 @@ async function until(cond: () => boolean, what: string, ms = 20000) {
   console.log(`ok: ${what}`);
 }
 
-const writer = openDoc(room, SERVER);
+const writer = open(room);
 const items = writer.doc.getArray<number>("items");
 for (let i = 0; i < N; i++) {
   items.push([i]);
@@ -44,10 +43,10 @@ if (n < MIN_ROWS) throw new Error(`expected >${MIN_ROWS - 1} rows persisted, saw
 console.log(`ok: ${n} rows persisted`);
 
 writer.provider.destroy();
-await fetch(`${HTTP}/debug/amnesia`);
+await sfetch(`${HTTP}/debug/amnesia`);
 
 // A fresh client triggers hydration, which triggers compaction.
-const reader = openDoc(room, SERVER);
+const reader = open(room);
 await until(
   () => reader.doc.getArray<number>("items").length === N,
   `fresh client sees all ${N} items`,

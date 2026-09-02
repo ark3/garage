@@ -6,9 +6,8 @@
 // edit (merge, not replace).
 
 import * as Y from "yjs";
-import { openDoc } from "@garage/sync";
 import { fromBase64, type BackupEnvelope } from "@garage/sync/backup";
-import { HTTP, SERVER } from "./target";
+import { HTTP, open, sfetch } from "./target";
 
 const stamp = Date.now();
 const roomA = `backup-a-${stamp}`;
@@ -25,7 +24,7 @@ async function until(cond: () => boolean | Promise<boolean>, what: string, ms = 
 }
 
 async function rowsFor(doc: string): Promise<number> {
-  const stats = (await (await fetch(`${HTTP}/debug/stats`)).json()) as {
+  const stats = (await (await sfetch(`${HTTP}/debug/stats`)).json()) as {
     doc: string;
     n: number;
   }[];
@@ -33,13 +32,13 @@ async function rowsFor(doc: string): Promise<number> {
 }
 
 async function takeBackup(): Promise<BackupEnvelope> {
-  const res = await fetch(`${HTTP}/api/backup`);
+  const res = await sfetch(`${HTTP}/api/backup`);
   if (!res.ok) throw new Error(`backup failed: ${res.status}`);
   return (await res.json()) as BackupEnvelope;
 }
 
 async function restore(envelope: BackupEnvelope) {
-  const res = await fetch(`${HTTP}/api/restore`, {
+  const res = await sfetch(`${HTTP}/api/restore`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(envelope),
@@ -53,12 +52,12 @@ const texts = (doc: Y.Doc) =>
 
 // 1. Seed roomA with known content and roomB past the compaction threshold.
 {
-  const a = openDoc(roomA, SERVER);
+  const a = open(roomA);
   a.doc.getArray("items").push([{ text: "alpha" }, { text: "beta" }]);
   await until(async () => (await rowsFor(roomA)) >= 1, "roomA persisted");
   a.provider.destroy();
 
-  const b = openDoc(roomB, SERVER);
+  const b = open(roomB);
   const items = b.doc.getArray<number>("items");
   for (let i = 0; i < N; i++) {
     items.push([i]);
@@ -66,8 +65,8 @@ const texts = (doc: Y.Doc) =>
   }
   await until(async () => (await rowsFor(roomB)) > 200, "roomB pushed past threshold");
   b.provider.destroy();
-  await fetch(`${HTTP}/debug/amnesia`);
-  const reader = openDoc(roomB, SERVER); // hydration triggers compaction
+  await sfetch(`${HTTP}/debug/amnesia`);
+  const reader = open(roomB); // hydration triggers compaction
   await until(() => reader.doc.getArray<number>("items").length === N, "roomB hydrates");
   reader.provider.destroy();
   if ((await rowsFor(roomB)) !== 1) throw new Error("roomB did not compact to 1 row");
@@ -89,11 +88,11 @@ for (const room of [roomA, roomB]) {
 console.log("ok: backup contains both docs, compacted doc decodes offline");
 
 // 3. Destroy server state, restore, prove fresh clients see the originals.
-await fetch(`${HTTP}/debug/wipe`);
+await sfetch(`${HTTP}/debug/wipe`);
 if ((await rowsFor(roomA)) !== 0 || (await rowsFor(roomB)) !== 0)
   throw new Error("wipe left rows behind");
 {
-  const empty = openDoc(roomA, SERVER); // prove the wipe was real, not cosmetic
+  const empty = open(roomA); // prove the wipe was real, not cosmetic
   await new Promise((r) => setTimeout(r, 500));
   if (empty.doc.getArray("items").length !== 0) throw new Error("wipe did not empty roomA");
   empty.provider.destroy();
@@ -103,8 +102,8 @@ console.log("ok: server wiped");
 const { restored } = await restore(backup1);
 if (!(roomA in restored) || !(roomB in restored)) throw new Error("restore skipped a doc");
 {
-  const a = openDoc(roomA, SERVER);
-  const b = openDoc(roomB, SERVER);
+  const a = open(roomA);
+  const b = open(roomB);
   await until(
     () =>
       texts(a.doc).join(",") === "alpha,beta" &&
@@ -119,7 +118,7 @@ if (!(roomA in restored) || !(roomB in restored)) throw new Error("restore skipp
 const backup2 = await takeBackup();
 {
   const rows = await rowsFor(roomA);
-  const w = openDoc(roomA, SERVER);
+  const w = open(roomA);
   await until(() => texts(w.doc).includes("alpha"), "writer synced before new edit");
   w.doc.getArray("items").push([{ text: "post-backup" }]);
   await until(async () => (await rowsFor(roomA)) > rows, "post-backup edit persisted");
@@ -127,7 +126,7 @@ const backup2 = await takeBackup();
 }
 await restore(backup2); // older backup, lacks "post-backup"
 {
-  const c = openDoc(roomA, SERVER);
+  const c = open(roomA);
   await until(
     () => {
       const t = texts(c.doc);

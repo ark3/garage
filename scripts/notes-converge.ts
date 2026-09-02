@@ -5,8 +5,7 @@
 // fresh third client hydrates the full note set from SQLite.
 
 import * as Y from "yjs";
-import { openDoc } from "@garage/sync";
-import { HTTP, SERVER } from "./target";
+import { HTTP, open, sfetch } from "./target";
 const room = process.argv[2] ?? `notes-converge-${Date.now()}`;
 
 function notes(doc: Y.Doc) {
@@ -26,8 +25,8 @@ async function until(cond: () => boolean, what: string, ms = 10000) {
   console.log(`ok: ${what}`);
 }
 
-const a = openDoc(room, SERVER);
-const b = openDoc(room, SERVER);
+const a = open(room);
+const b = open(room);
 
 // A creates a note the way the app does.
 const noteId = crypto.randomUUID();
@@ -57,7 +56,7 @@ const converged = () => {
 };
 await until(converged, "interleaved inserts converge to identical strings");
 
-const amnesia = await fetch(`${HTTP}/debug/amnesia`);
+const amnesia = await sfetch(`${HTTP}/debug/amnesia`);
 if (!amnesia.ok) throw new Error("amnesia route failed");
 
 // A second note plus more text edits after the simulated eviction.
@@ -81,7 +80,7 @@ await until(
 
 // A fresh client must hydrate the full note set from storage alone.
 const expected = body(a.doc, noteId)!.toString();
-const c = openDoc(room, SERVER);
+const c = open(room);
 await until(
   () =>
     body(c.doc, noteId)?.toString() === expected &&
