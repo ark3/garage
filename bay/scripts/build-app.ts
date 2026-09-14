@@ -15,8 +15,14 @@
 // it lands directly in public/ next to the hand-written index.html there.
 // Every other app lives in apps/<name>/ and lands in public/<name>/ with its
 // index.html copied alongside the bundle.
+//
+// Bundles are split, so a dynamic import() lands in its own chunk and an app
+// only pays for what it reaches (flashcards loads abcjs that way). Chunk
+// names carry a content hash, so an app's own directory is cleared first or
+// yesterday's chunks pile up in it forever. Scratch is not cleared: it builds
+// straight into public/, alongside the hand-written index.html there.
 
-import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 
 const app = process.argv[2];
@@ -36,6 +42,7 @@ if (app === "scratch") {
 } else {
   entry = `../apps/${app}/src/main.ts`;
   outdir = `public/${app}`;
+  rmSync(outdir, { recursive: true, force: true });
   mkdirSync(outdir, { recursive: true });
   copyFileSync(`../apps/${app}/index.html`, `${outdir}/index.html`);
 }
@@ -43,6 +50,7 @@ if (app === "scratch") {
 const result = await Bun.build({
   entrypoints: [entry],
   outdir,
+  splitting: true,
   define: { GARAGE_BUILD: JSON.stringify(build) },
 });
 if (!result.success) {
