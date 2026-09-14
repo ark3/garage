@@ -96,3 +96,26 @@ export async function openApp(name: string, schema: number) {
   });
   return { doc, provider, actor, me, stale };
 }
+
+// How a browser app opens a doc other than its app doc — flashcards holds a
+// deck and a progress doc beside its index. Same transport and same local
+// persistence as openApp's doc (offline-first is unconditional, keyed by doc
+// name), and nothing else: the schema marker, the client stamp and the build
+// check belong to the app doc, which one bundle's openApp already carries for
+// every shape that bundle writes. These docs come and go as the person moves
+// between decks, so closing is the caller's job, and it has to take the
+// socket, the persistence and the doc with it — a leaked provider is a leaked
+// socket.
+export function openPersistedDoc(name: string) {
+  const { doc, provider } = openDoc(name);
+  const local = new IndexeddbPersistence(name, doc);
+  return {
+    doc,
+    provider,
+    close() {
+      provider.destroy();
+      local.destroy();
+      doc.destroy();
+    },
+  };
+}

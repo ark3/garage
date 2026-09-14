@@ -1,4 +1,4 @@
-import { openApp } from "@garage/sync";
+import { openApp, openPersistedDoc } from "@garage/sync";
 
 const { doc, actor, me, stale } = await openApp("scratch", 1);
 const items = doc.getArray<{ text: string; ts: number }>("items");
@@ -43,3 +43,19 @@ form.addEventListener("submit", (e) => {
     input.value = "";
   }
 });
+
+// A second doc, opened the way an app opens one beside its app doc. Each load
+// appends its own timestamp (an array append merges from anywhere, so no read
+// before the local copy has arrived), and the line below is the human check
+// that IndexedDB is attached: with the server stopped, a reload still shows
+// the earlier loads.
+const extra = openPersistedDoc("scratch-extra");
+const loads = extra.doc.getArray<number>("loads");
+const loadsEl = document.getElementById("loads")!;
+function renderLoads() {
+  const all = loads.toArray();
+  const last = all[all.length - 1];
+  loadsEl.textContent = `${all.length} loads, last ${new Date(last).toLocaleTimeString()}`;
+}
+loads.observe(renderLoads);
+loads.push([Date.now()]);
