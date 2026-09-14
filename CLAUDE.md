@@ -62,6 +62,10 @@ Do not read `Cf-Access-Authenticated-User-Email` — it is a plain header and no
 Non-human clients (backup job, kitchen display, automations) are just service tokens; the actor column records the token name.
 Authorization is deliberately all-or-nothing for now: any authenticated identity can read/write every doc.
 Scope checks, if ever needed, belong in the DO keyed on the actor string — do not build them speculatively.
+Who is *allowed in* is decided entirely by Cloudflare: the Access application's Allow policy lists the family emails (and a Service Auth policy lists the tokens), and a login not on that list never reaches the Worker.
+Adding or removing a person is a dashboard edit, not a deploy.
+`getUser` only checks that the JWT is genuine (signature, issuer, audience, expiry); there is no email allowlist anywhere in this repo, and none should be added.
+Consequently every app may assume any identity it receives is allowed to use the system, and "which person is this, which docs are theirs" is app-level data — a convention the app follows, not a boundary the sync layer enforces.
 
 **Transport is hibernating WebSockets, wire format is the standard y-protocols sync protocol.**
 The DO uses the WebSocket Hibernation API so left-open tabs don't bill wall-clock.
