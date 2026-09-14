@@ -5,15 +5,12 @@
 // fresh third client hydrates the full note set from SQLite.
 
 import * as Y from "yjs";
+import { createNote, notesMap } from "../apps/notes/src/model";
 import { HTTP, open, sfetch } from "./target";
 const room = process.argv[2] ?? `notes-converge-${Date.now()}`;
 
-function notes(doc: Y.Doc) {
-  return doc.getMap<Y.Map<unknown>>("notes");
-}
-
 function body(doc: Y.Doc, id: string): Y.Text | undefined {
-  return notes(doc).get(id)?.get("text") as Y.Text | undefined;
+  return notesMap(doc).get(id)?.get("text") as Y.Text | undefined;
 }
 
 async function until(cond: () => boolean, what: string, ms = 10000) {
@@ -29,15 +26,7 @@ const a = open(room);
 const b = open(room);
 
 // A creates a note the way the app does.
-const noteId = crypto.randomUUID();
-{
-  const note = new Y.Map<unknown>();
-  note.set("text", new Y.Text());
-  note.set("createdBy", "script-a");
-  note.set("createdAt", Date.now());
-  note.set("updatedAt", Date.now());
-  notes(a.doc).set(noteId, note);
-}
+const noteId = createNote(a.doc, "script-a");
 await until(() => body(b.doc, noteId) !== undefined, "B sees A's note");
 
 // Interleaved concurrent inserts into the same Y.Text.
@@ -60,15 +49,7 @@ const amnesia = await sfetch(`${HTTP}/debug/amnesia`);
 if (!amnesia.ok) throw new Error("amnesia route failed");
 
 // A second note plus more text edits after the simulated eviction.
-const noteId2 = crypto.randomUUID();
-{
-  const note = new Y.Map<unknown>();
-  note.set("text", new Y.Text("second note"));
-  note.set("createdBy", "script-b");
-  note.set("createdAt", Date.now());
-  note.set("updatedAt", Date.now());
-  notes(b.doc).set(noteId2, note);
-}
+const noteId2 = createNote(b.doc, "script-b", "second note");
 body(a.doc, noteId)!.insert(0, "post-amnesia ");
 await until(
   () =>
@@ -85,7 +66,7 @@ await until(
   () =>
     body(c.doc, noteId)?.toString() === expected &&
     body(c.doc, noteId2)?.toString() === "second note" &&
-    notes(c.doc).get(noteId)?.get("createdBy") === "script-a",
+    notesMap(c.doc).get(noteId)?.get("createdBy") === "script-a",
   "fresh client hydrates the full note set from SQLite",
 );
 

@@ -4,7 +4,7 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import { clientId, meOf, resolveActor, stampOnSync, type Me } from "./app";
 
 export { getUser } from "./identity";
-export type { Me } from "./app";
+export { uuid, type Me } from "./app";
 
 // Connect a new Y.Doc to the bay DO. Default server URL assumes the app is
 // served by the same Worker (one origin, no CORS). Headless clients pass a

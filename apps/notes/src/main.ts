@@ -5,12 +5,12 @@ import { EditorView, keymap } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { defaultKeymap } from "@codemirror/commands";
 import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
+import { body, createNote, deleteNote, listNotes, notesMap, title } from "./model";
 
 const { doc, provider } = openDoc("notes");
 new IndexeddbPersistence("notes", doc);
 
-// Top-level map: note id -> Y.Map { text: Y.Text, createdBy, createdAt, updatedAt }.
-const notes = doc.getMap<Y.Map<unknown>>("notes");
+const notes = notesMap(doc);
 
 // --- Identity: name from /whoami, color derived from the name so a person
 // is the same color on every device. Cached for offline starts.
@@ -78,7 +78,7 @@ function selectNote(id: string) {
   const note = notes.get(id);
   if (!note) return;
   selectedId = id;
-  const ytext = note.get("text") as Y.Text;
+  const ytext = body(note);
 
   // Debounced updatedAt: order the list without per-keystroke meta churn.
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -114,17 +114,9 @@ function selectNote(id: string) {
 }
 
 // --- Note list
-function title(note: Y.Map<unknown>): string {
-  const text = (note.get("text") as Y.Text).toString();
-  return text.split("\n")[0].trim();
-}
-
 function renderList() {
-  const entries = [...notes.entries()].sort(
-    (a, b) => ((b[1].get("updatedAt") as number) ?? 0) - ((a[1].get("updatedAt") as number) ?? 0),
-  );
   listEl.replaceChildren(
-    ...entries.map(([id, note]) => {
+    ...listNotes(doc).map(([id, note]) => {
       const li = document.createElement("li");
       if (id === selectedId) li.classList.add("selected");
       const span = document.createElement("span");
@@ -138,7 +130,7 @@ function renderList() {
       del.title = "Delete note";
       del.addEventListener("click", (e) => {
         e.stopPropagation();
-        notes.delete(id);
+        deleteNote(doc, id);
       });
       li.append(del);
       li.addEventListener("click", () => selectNote(id));
@@ -147,28 +139,7 @@ function renderList() {
   );
 }
 
-// crypto.randomUUID needs a secure context; plain-http LAN dev is not one.
-function uuid(): string {
-  if (crypto.randomUUID) return crypto.randomUUID();
-  const b = crypto.getRandomValues(new Uint8Array(16));
-  b[6] = (b[6] & 0x0f) | 0x40;
-  b[8] = (b[8] & 0x3f) | 0x80;
-  const h = [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
-}
-
-function createNote() {
-  const id = uuid();
-  const note = new Y.Map<unknown>();
-  note.set("text", new Y.Text());
-  note.set("createdBy", me);
-  note.set("createdAt", Date.now());
-  note.set("updatedAt", Date.now());
-  notes.set(id, note);
-  selectNote(id);
-}
-
-newBtn.addEventListener("click", createNote);
+newBtn.addEventListener("click", () => selectNote(createNote(doc, me)));
 
 // Any change anywhere in the doc can move titles or ordering; the list is
 // tiny, so just re-render. If the selected note vanished (remote delete),
