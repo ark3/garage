@@ -8,6 +8,7 @@ import {
   resolveActor,
   schemaOf,
   shouldReload,
+  shouldReloadBuild,
   stampOnSync,
   type Me,
 } from "./app";
@@ -46,6 +47,12 @@ export function openDoc(
 // has already been tried and the doc is still ahead. Local persistence is
 // dropped too, so nothing the stale bundle writes can ride IndexedDB into
 // the next load.
+//
+// The served build is checked the same way a promotion would otherwise wait
+// on a hand reload: on every sync(true) and whenever the tab becomes
+// visible, fetch build.txt beside the bundle and reload once per served
+// value when it differs from GARAGE_BUILD. Fetch failures are ignored —
+// offline is normal.
 export async function openApp(name: string, schema: number) {
   const { doc, provider } = openDoc(name);
   const local = new IndexeddbPersistence(name, doc);
@@ -56,6 +63,23 @@ export async function openApp(name: string, schema: number) {
       else resolve();
     }),
   );
+  const checkBuild = async () => {
+    let served: string;
+    try {
+      const res = await fetch("./build.txt", { cache: "no-store" });
+      if (!res.ok) return;
+      served = (await res.text()).trim();
+    } catch {
+      return;
+    }
+    if (shouldReloadBuild(sessionStorage, name, GARAGE_BUILD, served)) location.reload();
+  };
+  provider.on("sync", (state: boolean) => {
+    if (state) checkBuild();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") checkBuild();
+  });
   const actors = openDoc("actors");
   new IndexeddbPersistence("actors", actors.doc);
   const clients = openDoc("clients");

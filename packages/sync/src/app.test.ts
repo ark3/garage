@@ -11,6 +11,7 @@ import {
   schemaState,
   setSchema,
   shouldReload,
+  shouldReloadBuild,
   stampOnSync,
 } from "./app";
 import { getClient, setActor } from "./directory";
@@ -194,4 +195,26 @@ test("shouldReload says yes once per app and marker", () => {
   expect(shouldReload(store, "notes", 3)).toBe(true);
   expect(shouldReload(store, "scratch", 3)).toBe(true);
   expect(store.dump()).toEqual({ "garage.stale.notes": "3", "garage.stale.scratch": "3" });
+});
+
+test("shouldReloadBuild says yes once per app and served build, never for its own", () => {
+  const store = fakeStore();
+  expect(shouldReloadBuild(store, "notes", "abc1234", "abc1234")).toBe(false);
+  expect(store.dump()).toEqual({});
+  expect(shouldReloadBuild(store, "notes", "abc1234", "def5678")).toBe(true);
+  expect(shouldReloadBuild(store, "notes", "abc1234", "def5678")).toBe(false);
+  expect(shouldReloadBuild(store, "notes", "abc1234", "0123abc-dirty")).toBe(true);
+  expect(shouldReloadBuild(store, "scratch", "abc1234", "def5678")).toBe(true);
+  expect(store.dump()).toEqual({
+    "garage.build.notes": "0123abc-dirty",
+    "garage.build.scratch": "def5678",
+  });
+});
+
+test("shouldReloadBuild keeps its own key apart from the schema guard", () => {
+  const store = fakeStore();
+  expect(shouldReload(store, "notes", 2)).toBe(true);
+  expect(shouldReloadBuild(store, "notes", "abc1234", "def5678")).toBe(true);
+  expect(shouldReload(store, "notes", 2)).toBe(false);
+  expect(shouldReloadBuild(store, "notes", "abc1234", "def5678")).toBe(false);
 });

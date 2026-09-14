@@ -147,12 +147,27 @@ export function guardSchema(
   check();
 }
 
-// Whether a stale bundle should reload: once per app and marker for the
-// session, so a server still serving the old bundle cannot loop. Records
-// the marker as a side effect when it says yes.
-export function shouldReload(store: Store, app: string, marker: number): boolean {
-  const key = `garage.stale.${app}`;
-  if (store.getItem(key) === String(marker)) return false;
-  store.setItem(key, String(marker));
+// Reload once per key and value for the session, so a server still serving
+// the old bundle cannot loop. Records the value as a side effect when it
+// says yes.
+function reloadOnce(store: Store, key: string, value: string): boolean {
+  if (store.getItem(key) === value) return false;
+  store.setItem(key, value);
   return true;
+}
+
+// Whether a stale bundle should reload: once per app and marker.
+export function shouldReload(store: Store, app: string, marker: number): boolean {
+  return reloadOnce(store, `garage.stale.${app}`, String(marker));
+}
+
+// Whether a bundle should reload because the server serves a different
+// build: once per app and served value, and never for its own.
+export function shouldReloadBuild(
+  store: Store,
+  app: string,
+  own: string,
+  served: string,
+): boolean {
+  return served !== own && reloadOnce(store, `garage.build.${app}`, served);
 }
