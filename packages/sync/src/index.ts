@@ -8,11 +8,12 @@ export type { Me } from "./app";
 
 // Connect a new Y.Doc to the bay DO. Default server URL assumes the app is
 // served by the same Worker (one origin, no CORS). Headless clients pass a
-// WebSocketPolyfill that attaches their Access service-token headers.
+// WebSocketPolyfill that attaches their Access service-token headers, and
+// disableBc so same-process providers only ever meet through the server.
 export function openDoc(
   name: string,
   serverUrl?: string,
-  opts?: { WebSocketPolyfill?: typeof WebSocket },
+  opts?: { WebSocketPolyfill?: typeof WebSocket; disableBc?: boolean },
 ) {
   const base =
     serverUrl ??

@@ -34,18 +34,8 @@ async function until(cond: () => boolean, what: string, ms = 10000) {
   }
 }
 
-// Bun has BroadcastChannel and y-websocket syncs same-process providers over
-// it, so without cutting that channel the confirming client would see the
-// write straight from the writing client, before the server ever did.
-function openWsOnly(room: string) {
-  const client = open(room);
-  client.provider.disableBc = true;
-  client.provider.disconnectBc();
-  return client;
-}
-
 async function connect(room: string) {
-  const client = openWsOnly(room);
+  const client = open(room);
   await until(() => client.provider.synced, `sync of ${room}`);
   return client;
 }

@@ -64,17 +64,19 @@ export function sfetch(url: string, init: RequestInit = {}): Promise<Response> {
 
 // Bun's WebSocket accepts custom headers on the upgrade request; y-websocket
 // constructs the polyfill with the URL alone, so the headers ride along here.
-const wsOpts = Object.keys(HEADERS).length
-  ? {
-      WebSocketPolyfill: class extends WebSocket {
-        constructor(url: string | URL) {
-          super(url, { headers: HEADERS } as unknown as string[]);
-        }
-      } as unknown as typeof WebSocket,
-    }
+const WebSocketPolyfill = Object.keys(HEADERS).length
+  ? (class extends WebSocket {
+      constructor(url: string | URL) {
+        super(url, { headers: HEADERS } as unknown as string[]);
+      }
+    } as unknown as typeof WebSocket)
   : undefined;
 
 // openDoc against SERVER, attaching the Access headers on the WS upgrade.
+// Bun has BroadcastChannel and y-websocket syncs same-process providers over
+// it, so it is cut here: otherwise a second client could see a write straight
+// from the first, before the server ever did, and "another client sees it"
+// would prove nothing about persistence.
 export function open(room: string) {
-  return openDoc(room, SERVER, wsOpts);
+  return openDoc(room, SERVER, { WebSocketPolyfill, disableBc: true });
 }

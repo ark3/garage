@@ -59,11 +59,8 @@ actors = (await dump("actors")).actors;
 expect(!(KEY in actors), "dump actors no longer shows the entry");
 
 // A notes-shaped doc with a Y.Text the tool must leave alone.
-// Cut the same-process BroadcastChannel so "b sees it" means the server has it.
 const noteId = crypto.randomUUID();
 const a = open(ROOM);
-a.provider.disableBc = true;
-a.provider.disconnectBc();
 {
   const note = new Y.Map<unknown>();
   note.set("text", new Y.Text("hello"));
@@ -71,8 +68,6 @@ a.provider.disconnectBc();
   a.doc.getMap<Y.Map<unknown>>("notes").set(noteId, note);
 }
 const b = open(ROOM);
-b.provider.disableBc = true;
-b.provider.disconnectBc();
 await until(
   () => (b.doc.getMap<Y.Map<unknown>>("notes").get(noteId)?.get("text") as Y.Text | undefined)?.toString() === "hello",
   "a second client sees the note",
