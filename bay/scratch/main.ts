@@ -1,6 +1,6 @@
 import { openApp } from "@garage/sync";
 
-const { doc, actor, me } = await openApp("scratch", 1);
+const { doc, actor, me, stale } = await openApp("scratch", 1);
 const items = doc.getArray<{ text: string; ts: number }>("items");
 
 const list = document.getElementById("list")!;
@@ -9,6 +9,9 @@ const form = document.getElementById("form")!;
 
 document.getElementById("actor")!.textContent = actor;
 document.getElementById("build")!.textContent = GARAGE_BUILD;
+stale.then(() => {
+  document.getElementById("stale")!.textContent = "this app is out of date, reload";
+});
 
 // `me` changes as the actors doc arrives (IndexedDB, then server); an
 // unmapped identity shows plainly rather than being papered over.

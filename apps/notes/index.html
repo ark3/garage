@@ -28,6 +28,8 @@
       border-bottom: 1px solid #ddd;
     }
     aside h1 { font-size: 1rem; margin: 0; }
+    #stale:empty { display: none; }
+    #stale { margin: 0; padding: 0.5rem 0.75rem; background: #fee; color: #900; }
     #new {
       font-size: 1.1rem;
       line-height: 1;
@@ -97,6 +99,7 @@
       <h1>notes</h1>
       <button id="new" title="New note">+</button>
     </header>
+    <p id="stale"></p>
     <ul id="list"></ul>
   </aside>
   <main>

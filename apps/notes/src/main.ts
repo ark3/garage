@@ -6,7 +6,7 @@ import { defaultKeymap } from "@codemirror/commands";
 import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
 import { SCHEMA, body, createNote, deleteNote, listNotes, notesMap, title } from "./model";
 
-const { doc, provider, actor, me } = await openApp("notes", SCHEMA);
+const { doc, provider, actor, me, stale } = await openApp("notes", SCHEMA);
 
 const notes = notesMap(doc);
 
@@ -29,6 +29,11 @@ const listEl = document.getElementById("list")!;
 const editorEl = document.getElementById("editor")!;
 const placeholderEl = document.getElementById("placeholder")!;
 const newBtn = document.getElementById("new")!;
+
+// A stale bundle has already disconnected and stopped persisting; say so plainly.
+stale.then(() => {
+  document.getElementById("stale")!.textContent = "this app is out of date, reload";
+});
 
 // --- Editor lifecycle: one EditorView, rebuilt when the selection changes.
 let selectedId: string | null = null;
