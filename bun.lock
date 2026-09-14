@@ -15,6 +15,13 @@
         "@garage/sync": "workspace:*",
       },
     },
+    "apps/flashcards": {
+      "name": "@garage/flashcards",
+      "dependencies": {
+        "@garage/sync": "workspace:*",
+        "yjs": "13.6.32",
+      },
+    },
     "apps/notes": {
       "name": "@garage/notes",
       "dependencies": {
@@ -130,6 +137,8 @@
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.28.1", "", { "os": "win32", "cpu": "x64" }, "sha512-bm4Mowrv+GXMlpWX++EcXw/iLyd1o3+bJkC2DkWXYVvgZCqD/bSj9ctZeAMC3cIxgjRVR2Dufaiu4YPxr5gW1A=="],
 
     "@garage/backup": ["@garage/backup@workspace:apps/backup"],
+
+    "@garage/flashcards": ["@garage/flashcards@workspace:apps/flashcards"],
 
     "@garage/notes": ["@garage/notes@workspace:apps/notes"],
 
