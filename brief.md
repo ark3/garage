@@ -42,7 +42,7 @@ The real-use trial attaches to whatever app the family actually wants — chat a
    Small docs, no unbounded growth, no notifications — none of chat's open design questions apply, so it ships soonest.
    Scheduling starts client-side (due dates are data; "what's due" is computed at open); coupling to a platform primitive for reminders is an explicit decision per the coupling rule in `CLAUDE.md`.
    Exercises per-person data and multi-person real use.
-   Per-person data is one doc per actor handle, identity via `openApp` and the `actors` directory; the local identity override for the dev stub (deferred from the directory milestone) is the first card, since two actors must differ on one server.
+   Design decisions settled 2026-09-14 in `apps/flashcards/THOUGHTS.md`: shared decks, per-person progress, text-only cards with an ABC-notation kind, SM-2 with Anki's four buttons, no dev-stub identity override (one identity on the LAN is accepted until deploy).
 
 3. **Six-week real-use trial; the clock starts when the first family-used app ships.**
    Criteria are written now and graded at the end, not retrofitted:
