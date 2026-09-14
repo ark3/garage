@@ -67,6 +67,12 @@ Adding or removing a person is a dashboard edit, not a deploy.
 `getUser` only checks that the JWT is genuine (signature, issuer, audience, expiry); there is no email allowlist anywhere in this repo, and none should be added.
 Consequently every app may assume any identity it receives is allowed to use the system, and "which person is this, which docs are theirs" is app-level data — a convention the app follows, not a boundary the sync layer enforces.
 
+**Two directory docs, both ordinary docs in the same DO.**
+`actors` is keyed by the identity string `getUser` returns and holds `handle` (short, hand-chosen; what apps use in doc names), `name`, `fg`, `bg`; robots (service tokens) are entries like anyone else.
+`clients` is keyed by a per-browser id kept in `localStorage` and holds `actor`, a hand-edited `label`, `firstSeen`, and per app `{ build, schema, syncedAt }`, stamped by `openApp` after every sync — this is how "has every device picked up the new bundle" is answered.
+They are edited with `scripts/doc.ts` (dump any doc as JSON, set or delete at a path, refuses to touch `Y.Text`), not through an admin API; the backend stays storage plus identity.
+Production starts empty: nothing on the family server carries real identity, so the directories are created there directly and nothing is transferred.
+
 **Transport is hibernating WebSockets, wire format is the standard y-protocols sync protocol.**
 The DO uses the WebSocket Hibernation API so left-open tabs don't bill wall-clock.
 Consequences: no in-memory state is trustworthy (every handler hydrates docs from SQLite via one chokepoint), and per-socket facts live in `serializeAttachment`, never closures.
@@ -128,5 +134,6 @@ This matters because `scripts/backup-cycle.ts` wipes whatever server it targets.
 - `bun run dev` starts `wrangler dev`; `/health` responds.
 - A real SQLite file appears under `.wrangler/state` after the DO is touched once.
 - With the test server up: `bun scripts/converge.ts` proves two clients converge, including across a simulated hibernation eviction (`/debug/amnesia`); `bun scripts/compaction.ts` proves the log compacts to one row with no data loss.
+- Also with the test server up: `actors-converge.ts` and `clients-converge.ts` pin the directory shapes; `doc-tool-check.ts` drives `scripts/doc.ts`; `bc-check.ts` proves script clients only meet through the server; `schema-marker-check.ts` proves a stale bundle disconnects and its writes never land.
 - The scratch page at `/` (build with `bun run --cwd bay build:scratch`) is the human two-tab check.
 - `bun test` for `packages/*` (covers Access JWT verification with locally minted keys).

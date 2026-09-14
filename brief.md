@@ -10,6 +10,7 @@ This file is the task sequence; update or delete milestones as they complete.
 3. `apps/notes` (2026-09-01; human two-tab check, `scripts/notes-converge.ts`).
 4. Backup app with merge-semantics restore (2026-08-30; `scripts/backup-cycle.ts`).
 5. Real Access JWT verification behind `getUser`, config-gated (`bun test`).
+6. Directory (2026-09-14): `actors` and `clients` docs, `openApp` helper (offline-first, client stamps, schema marker, self-reload on new build), `scripts/doc.ts`, build sha and per-app schema, notes migrated as the rehearsal. Conventions in `apps/WORKFLOW.md` ("Every app works this way", "Migrations").
 
 ## Next, in order
 
@@ -41,7 +42,7 @@ The real-use trial attaches to whatever app the family actually wants — chat a
    Small docs, no unbounded growth, no notifications — none of chat's open design questions apply, so it ships soonest.
    Scheduling starts client-side (due dates are data; "what's due" is computed at open); coupling to a platform primitive for reminders is an explicit decision per the coupling rule in `CLAUDE.md`.
    Exercises per-person data and multi-person real use.
-   First milestone run under the card workflow.
+   Per-person data is one doc per actor handle, identity via `openApp` and the `actors` directory; the local identity override for the dev stub (deferred from the directory milestone) is the first card, since two actors must differ on one server.
 
 3. **Six-week real-use trial; the clock starts when the first family-used app ships.**
    Criteria are written now and graded at the end, not retrofitted:
