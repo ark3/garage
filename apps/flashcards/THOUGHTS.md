@@ -1,7 +1,7 @@
 # Flashcards — initial thoughts
 
 Pre-design notes settled in discussion on 2026-09-14, before any plan doc exists.
-This is not a plan doc; when `PLAN.md` and the cards happen, they supersede this file.
+The app shipped 2026-09-14; the plan doc that followed this is gone, and its decisions live in `src/model.ts` and `src/sm2.ts`.
 Everything an app is expected to do at startup is in `apps/WORKFLOW.md` ("Every app works this way") and is not repeated here.
 
 ## Why flashcards is sequenced where it is

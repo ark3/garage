@@ -110,18 +110,18 @@ Reach for one only after writing down the portable alternative and consciously r
 
 Commit as you go: once a logical change is verified, commit it without asking — one logical change per commit, staging only the files that belong to it.
 Never push.
-App-building conventions (data model first, doc-name churn, promotion freezes the shape, the y-indexeddb trap) live in `apps/WORKFLOW.md` — read it before working under `apps/`.
+App-building conventions (data model first, doc-name churn, the y-indexeddb trap) live in `apps/WORKFLOW.md` — read it before working under `apps/`.
 
 **Run `card status` first in every session.**
 Work comes in two sizes.
 Do quick work — anything that fits in a sitting — directly; no cards.
 Milestone-sized work — anything that would earn a plan doc — runs on cards; the deck is private to this machine and never committed.
 If a request looks bigger than a sitting, say so and propose cards rather than diving in; Abhay can always overrule in either direction.
-The plan doc's name is the ticket label; a milestone's cards all close before it does.
+Cards exist so small pieces of work can run in subagents without findings derailing the session: a finding becomes a card, not a detour.
+The plan doc's name is the ticket label.
 Authoring cards is collaborative and is where the grounding happens: paths, what done looks like, and a sweep of `closed/` for prior art.
 The deck is working memory; the repo is the record.
-Close notes hold evidence as it happens, but durable findings graduate to committed docs in one sweep when the milestone closes — the milestone is not done until that sweep has run and the plan doc is deleted.
-Exception: a finding that is hazardous to leave unrecorded graduates immediately.
+A durable lesson goes into the committed docs when it surfaces, not at a closing ceremony; the plan doc is deleted once its work is done.
 Scope creep converts into new cards, not drive-by changes.
 
 ## Verification
@@ -136,4 +136,6 @@ This matters because `scripts/backup-cycle.ts` wipes whatever server it targets.
 - With the test server up: `bun scripts/converge.ts` proves two clients converge, including across a simulated hibernation eviction (`/debug/amnesia`); `bun scripts/compaction.ts` proves the log compacts to one row with no data loss.
 - Also with the test server up: `actors-converge.ts` and `clients-converge.ts` pin the directory shapes; `doc-tool-check.ts` drives `scripts/doc.ts`; `bc-check.ts` proves script clients only meet through the server; `schema-marker-check.ts` proves a stale bundle disconnects and its writes never land.
 - The scratch page at `/` (build with `bun run --cwd bay build:scratch`) is the human two-tab check.
-- `bun test` for `packages/*` (covers Access JWT verification with locally minted keys).
+- Also with the test server up: `bun scripts/flashcards-converge.ts` proves two handles keep separate progress on one deck, a copied deck keeps card ids, and a thousand-card deck hydrates.
+- `bun test` for `packages/*` (covers Access JWT verification with locally minted keys) and `apps/*` (the SM-2 scheduler).
+- `bun run --cwd bay build:<app>` builds an app into `bay/public/<app>/`, which is all it takes to put it on the family's phones.
