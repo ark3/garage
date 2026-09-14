@@ -1,5 +1,6 @@
 node_modules/
 .wrangler/
 bay/public/main.js
+bay/public/build.txt
 bay/public/notes/
 bay/public/backup/

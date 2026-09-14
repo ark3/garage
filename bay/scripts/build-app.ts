@@ -8,12 +8,15 @@
 // code write" — is not a build input; each app declares it as a constant in
 // its own code and hands it to the sync helper.
 //
+// The same string is written to build.txt beside the bundle, so a running
+// app can fetch it and notice when the served build has moved past its own.
+//
 // "scratch" is the two-tab check page: its entry is bay/scratch/main.ts and
 // it lands directly in public/ next to the hand-written index.html there.
 // Every other app lives in apps/<name>/ and lands in public/<name>/ with its
 // index.html copied alongside the bundle.
 
-import { copyFileSync, mkdirSync } from "node:fs";
+import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 
 const app = process.argv[2];
@@ -46,4 +49,5 @@ if (!result.success) {
   for (const log of result.logs) console.error(log);
   process.exit(1);
 }
+writeFileSync(`${outdir}/build.txt`, build + "\n");
 console.log(`${app}: built ${build} -> ${outdir}`);
