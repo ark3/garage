@@ -7,6 +7,8 @@ const list = document.getElementById("list")!;
 const input = document.getElementById("text") as HTMLInputElement;
 const form = document.getElementById("form")!;
 
+document.getElementById("build")!.textContent = GARAGE_BUILD;
+
 function render() {
   list.replaceChildren(
     ...items.toArray().map((item) => {
