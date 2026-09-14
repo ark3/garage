@@ -4,15 +4,15 @@
 // Idempotent: a value equal to some `actors` key becomes that entry's handle;
 // a value already equal to some handle is left alone; anything else is
 // reported and left alone. Then the straggler check: every `clients` entry
-// that has not synced notes at the target schema since this run started is
-// listed, since it could still hold an old bundle that writes the old shape.
-// The migration closes when a rerun prints migrated=0 and stragglers: 0.
+// whose notes stamp is absent or below the target schema is listed, since it
+// could still hold an old bundle that writes the old shape.
+// The migration closes when a rerun prints migrated=0 and stragglers: 0: the
+// rerun proves no old-shape write arrived, the stamps prove every client runs
+// the new bundle.
 
 import { actorsMap, clientsMap, type Actor, type Client } from "@garage/sync/directory";
 import { SCHEMA, notesMap } from "../apps/notes/src/model";
 import { open } from "./target";
-
-const startedAt = Date.now();
 
 async function until(cond: () => boolean, what: string, ms = 10000) {
   const start = Date.now();
@@ -61,7 +61,7 @@ let stragglers = 0;
 for (const [id, entry] of clientsMap(clients.doc).entries()) {
   const client = entry.toJSON() as Client;
   const app = client.apps.notes;
-  if (app && app.schema >= SCHEMA && app.syncedAt >= startedAt) continue;
+  if (app && app.schema >= SCHEMA) continue;
   stragglers++;
   console.log(`  straggler: ${client.label ?? id} (${client.actor})`);
 }
