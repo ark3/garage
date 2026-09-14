@@ -5,9 +5,9 @@
     "dev": "XDG_CONFIG_HOME=$PWD/.wrangler/xdg WRANGLER_LOG_PATH=$PWD/.wrangler/logs wrangler dev --ip 0.0.0.0",
     "dev:test": "XDG_CONFIG_HOME=$PWD/.wrangler/xdg WRANGLER_LOG_PATH=$PWD/.wrangler/logs wrangler dev --port 8788 --persist-to .wrangler/test-state",
     "deploy": "wrangler deploy",
-    "build:scratch": "bun build scratch/main.ts --outdir public",
-    "build:notes": "mkdir -p public/notes && cp ../apps/notes/index.html public/notes/ && bun build ../apps/notes/src/main.ts --outdir public/notes",
-    "build:backup": "mkdir -p public/backup && cp ../apps/backup/index.html public/backup/ && bun build ../apps/backup/src/main.ts --outdir public/backup"
+    "build:scratch": "bun scripts/build-app.ts scratch",
+    "build:notes": "bun scripts/build-app.ts notes",
+    "build:backup": "bun scripts/build-app.ts backup"
   },
   "dependencies": {
     "@garage/sync": "workspace:*",
