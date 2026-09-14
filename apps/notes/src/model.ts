@@ -1,9 +1,13 @@
 // The notes data model as plain functions over a Y.Doc, shared by the app and
 // by scripts so the shape is stated once.
 // Top-level map: note id -> Y.Map { text: Y.Text, createdBy, createdAt, updatedAt }.
+// `createdBy` is the creator's actor handle (schema 2; schema 1 held the raw
+// identity string), or the raw identity when the actor has no directory entry.
 
 import * as Y from "yjs";
 import { uuid } from "@garage/sync";
+
+export const SCHEMA = 2;
 
 export type Note = Y.Map<unknown>;
 

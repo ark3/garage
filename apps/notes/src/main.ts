@@ -1,56 +1,28 @@
 import * as Y from "yjs";
-import { openDoc } from "@garage/sync";
-import { IndexeddbPersistence } from "y-indexeddb";
+import { openApp } from "@garage/sync";
 import { EditorView, keymap } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { defaultKeymap } from "@codemirror/commands";
 import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
-import { body, createNote, deleteNote, listNotes, notesMap, title } from "./model";
+import { SCHEMA, body, createNote, deleteNote, listNotes, notesMap, title } from "./model";
 
-const { doc, provider } = openDoc("notes");
-new IndexeddbPersistence("notes", doc);
+const { doc, provider, actor, me } = await openApp("notes", SCHEMA);
 
 const notes = notesMap(doc);
 
-// --- Identity: name from /whoami, color derived from the name so a person
-// is the same color on every device. Cached for offline starts.
-const palette = [
-  { color: "#30bced", light: "#30bced33" },
-  { color: "#6eeb83", light: "#6eeb8333" },
-  { color: "#ffbc42", light: "#ffbc4233" },
-  { color: "#ecd444", light: "#ecd44433" },
-  { color: "#ee6352", light: "#ee635233" },
-  { color: "#9ac2c9", light: "#9ac2c933" },
-  { color: "#8acb88", light: "#8acb8833" },
-  { color: "#1be7ff", light: "#1be7ff33" },
-];
-
-function colorFor(name: string) {
-  let h = 0;
-  for (const ch of name) h = (h * 31 + ch.codePointAt(0)!) >>> 0;
-  return palette[h % palette.length];
-}
-
-let me = localStorage.getItem("whoami") ?? "unknown";
-
+// --- Identity: awareness user from the directory entry, so a person is the
+// same name and color on every device. An unmapped actor shows as its raw
+// identity string with no colors; y-codemirror.next then uses its own default.
 function setAwarenessUser() {
-  const c = colorFor(me);
-  provider.awareness.setLocalStateField("user", {
-    name: me,
-    color: c.color,
-    colorLight: c.light,
-  });
+  const m = me.current;
+  provider.awareness.setLocalStateField(
+    "user",
+    m ? { name: m.name, color: m.fg, colorLight: m.bg } : { name: actor },
+  );
 }
 
 setAwarenessUser();
-fetch("/whoami")
-  .then((r) => r.text())
-  .then((t) => {
-    me = t.trim();
-    localStorage.setItem("whoami", me);
-    setAwarenessUser();
-  })
-  .catch(() => {}); // offline: keep the cached name
+me.observe(setAwarenessUser);
 
 // --- DOM
 const listEl = document.getElementById("list")!;
@@ -139,7 +111,11 @@ function renderList() {
   );
 }
 
-newBtn.addEventListener("click", () => selectNote(createNote(doc, me)));
+// createdBy holds the handle when the actor is mapped, the raw identity
+// otherwise, so a later migration can still map it.
+newBtn.addEventListener("click", () =>
+  selectNote(createNote(doc, me.current?.handle ?? actor)),
+);
 
 // Any change anywhere in the doc can move titles or ordering; the list is
 // tiny, so just re-render. If the selected note vanished (remote delete),
