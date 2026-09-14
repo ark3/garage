@@ -1,6 +1,7 @@
 // The pieces openApp (index.ts) composes, kept free of y-websocket and
 // IndexedDB so they can be unit-tested: the per-browser client id, the actor
-// string, the `me` view over the actors doc, and the after-sync stamp.
+// string, the `me` view over the actors doc, the after-sync stamp, and the
+// schema marker guard.
 
 import * as Y from "yjs";
 import { actorsMap, getActor, stampClient, type Actor } from "./directory";
@@ -86,4 +87,72 @@ export function stampOnSync(
     if (state) write();
   });
   if (source.synced) write();
+}
+
+// Every app doc carries a top-level `meta` map whose `schema` is the shape
+// the store currently holds. A bundle compares it with its own schema
+// constant: behind or absent means this bundle moves the store to its shape
+// (the idempotent migration script maps leftover old values whenever it
+// runs); ahead means this bundle is stale and must stop writing.
+export function metaMap(doc: Y.Doc): Y.Map<unknown> {
+  return doc.getMap("meta");
+}
+
+export function schemaOf(doc: Y.Doc): number | undefined {
+  return metaMap(doc).get("schema") as number | undefined;
+}
+
+export function setSchema(doc: Y.Doc, schema: number): void {
+  metaMap(doc).set("schema", schema);
+}
+
+export type SchemaState = "absent" | "behind" | "same" | "ahead";
+
+export function schemaState(doc: Y.Doc, schema: number): SchemaState {
+  const marker = schemaOf(doc);
+  if (marker === undefined) return "absent";
+  return marker < schema ? "behind" : marker > schema ? "ahead" : "same";
+}
+
+export type SchemaSource = SyncSource & { disconnect(): void };
+
+// Runs the comparison now, on every sync(true), and on every change to
+// `meta` (IndexedDB load, another client's bump). The stale check always
+// comes first, and the marker is written only while synced, so a bundle
+// that has not yet seen the server's marker never overwrites a newer one
+// with its own. Ahead: disconnect before anything else, call onStale once,
+// and never write again — not even after a later sync.
+export function guardSchema(
+  doc: Y.Doc,
+  source: SchemaSource,
+  schema: number,
+  onStale: () => void,
+): void {
+  let stale = false;
+  const check = () => {
+    if (stale) return;
+    const state = schemaState(doc, schema);
+    if (state === "ahead") {
+      stale = true;
+      source.disconnect();
+      onStale();
+    } else if (state !== "same" && source.synced) {
+      setSchema(doc, schema);
+    }
+  };
+  metaMap(doc).observe(check);
+  source.on("sync", (state) => {
+    if (state) check();
+  });
+  check();
+}
+
+// Whether a stale bundle should reload: once per app and marker for the
+// session, so a server still serving the old bundle cannot loop. Records
+// the marker as a side effect when it says yes.
+export function shouldReload(store: Store, app: string, marker: number): boolean {
+  const key = `garage.stale.${app}`;
+  if (store.getItem(key) === String(marker)) return false;
+  store.setItem(key, String(marker));
+  return true;
 }

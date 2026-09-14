@@ -1,10 +1,19 @@
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import { IndexeddbPersistence } from "y-indexeddb";
-import { clientId, meOf, resolveActor, stampOnSync, type Me } from "./app";
+import {
+  clientId,
+  guardSchema,
+  meOf,
+  resolveActor,
+  schemaOf,
+  shouldReload,
+  stampOnSync,
+  type Me,
+} from "./app";
 
 export { getUser } from "./identity";
-export { uuid, type Me } from "./app";
+export { guardSchema, schemaOf, uuid, type Me } from "./app";
 
 // Connect a new Y.Doc to the bay DO. Default server URL assumes the app is
 // served by the same Worker (one origin, no CORS). Headless clients pass a
@@ -29,9 +38,24 @@ export function openDoc(
 // after each sync of the app doc. `schema` is the app's hand-bumped
 // doc-shape integer; `build` comes from the GARAGE_BUILD global the build
 // script bakes in. Resolves once /whoami has answered or failed.
+//
+// The doc's schema marker is guarded from the start, before /whoami, so a
+// stale bundle (doc ahead of `schema`) disconnects as soon as the doc says
+// so. Going stale is terminal for the bundle, so it is surfaced as a promise:
+// `stale` resolves if this bundle must stop, after one reload per marker
+// has already been tried and the doc is still ahead. Local persistence is
+// dropped too, so nothing the stale bundle writes can ride IndexedDB into
+// the next load.
 export async function openApp(name: string, schema: number) {
   const { doc, provider } = openDoc(name);
-  new IndexeddbPersistence(name, doc);
+  const local = new IndexeddbPersistence(name, doc);
+  const stale = new Promise<void>((resolve) =>
+    guardSchema(doc, provider, schema, () => {
+      local.destroy();
+      if (shouldReload(sessionStorage, name, schemaOf(doc)!)) location.reload();
+      else resolve();
+    }),
+  );
   const actors = openDoc("actors");
   new IndexeddbPersistence("actors", actors.doc);
   const clients = openDoc("clients");
@@ -46,5 +70,5 @@ export async function openApp(name: string, schema: number) {
     build: GARAGE_BUILD,
     schema,
   });
-  return { doc, provider, actor, me };
+  return { doc, provider, actor, me, stale };
 }

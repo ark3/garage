@@ -1,6 +1,18 @@
 import { expect, test } from "bun:test";
 import * as Y from "yjs";
-import { CLIENT_ID_KEY, WHOAMI_KEY, clientId, meOf, resolveActor, stampOnSync } from "./app";
+import {
+  CLIENT_ID_KEY,
+  WHOAMI_KEY,
+  clientId,
+  guardSchema,
+  meOf,
+  resolveActor,
+  schemaOf,
+  schemaState,
+  setSchema,
+  shouldReload,
+  stampOnSync,
+} from "./app";
 import { getClient, setActor } from "./directory";
 
 function fakeStore(init: Record<string, string> = {}) {
@@ -63,14 +75,24 @@ test("me reflects the actors doc as it changes; unmapped is undefined", () => {
   expect(seen.length).toBe(3);
 });
 
-// A stand-in for the provider's sync surface: `synced` plus the sync event.
+// A stand-in for the provider's sync surface: `synced`, the sync event, and
+// disconnect (which drops `synced`, as y-websocket does).
 function fakeSource(synced = false) {
   const fns: ((s: boolean) => void)[] = [];
-  return {
+  const source = {
     synced,
+    disconnects: 0,
     on: (_: "sync", fn: (s: boolean) => void) => void fns.push(fn),
-    emit: (s: boolean) => fns.forEach((f) => f(s)),
+    emit: (s: boolean) => {
+      source.synced = s;
+      fns.forEach((f) => f(s));
+    },
+    disconnect: () => {
+      source.disconnects++;
+      source.synced = false;
+    },
   };
+  return source;
 }
 
 const stamp = {
@@ -102,4 +124,74 @@ test("stampOnSync stamps immediately when already synced", () => {
   const clients = new Y.Doc();
   stampOnSync(fakeSource(true), clients, stamp);
   expect(getClient(clients, stamp.clientId)!.apps.scratch.build).toBe("abc1234");
+});
+
+test("schemaState: absent, behind, same, ahead", () => {
+  const doc = new Y.Doc();
+  expect(schemaState(doc, 2)).toBe("absent");
+  setSchema(doc, 1);
+  expect(schemaState(doc, 2)).toBe("behind");
+  setSchema(doc, 2);
+  expect(schemaState(doc, 2)).toBe("same");
+  setSchema(doc, 3);
+  expect(schemaState(doc, 2)).toBe("ahead");
+  expect(schemaOf(doc)).toBe(3);
+});
+
+test("guardSchema writes the marker when absent or behind, only once synced", () => {
+  const doc = new Y.Doc();
+  const source = fakeSource();
+  let stale = 0;
+  guardSchema(doc, source, 2, () => stale++);
+  expect(schemaOf(doc)).toBeUndefined();
+  setSchema(doc, 1); // e.g. the IndexedDB copy arriving before the server
+  expect(schemaOf(doc)).toBe(1);
+  source.emit(true);
+  expect(schemaOf(doc)).toBe(2);
+  expect(stale).toBe(0);
+  expect(source.disconnects).toBe(0);
+});
+
+test("guardSchema writes immediately when already synced and the marker is absent", () => {
+  const doc = new Y.Doc();
+  guardSchema(doc, fakeSource(true), 1, () => {});
+  expect(schemaOf(doc)).toBe(1);
+});
+
+test("guardSchema on a doc ahead disconnects, reports stale once, and never writes", () => {
+  const doc = new Y.Doc();
+  setSchema(doc, 2);
+  const source = fakeSource(true);
+  let stale = 0;
+  guardSchema(doc, source, 1, () => stale++);
+  expect(source.disconnects).toBe(1);
+  expect(stale).toBe(1);
+  expect(schemaOf(doc)).toBe(2);
+  // A later sync or meta change does not resurrect the bundle's own marker.
+  source.emit(true);
+  setSchema(doc, 3);
+  expect(schemaOf(doc)).toBe(3);
+  expect(source.disconnects).toBe(1);
+  expect(stale).toBe(1);
+});
+
+test("guardSchema goes stale when the marker moves ahead after sync", () => {
+  const doc = new Y.Doc();
+  const source = fakeSource(true);
+  let stale = 0;
+  guardSchema(doc, source, 1, () => stale++);
+  expect(schemaOf(doc)).toBe(1);
+  setSchema(doc, 2); // another client's bump arriving as a meta change
+  expect(source.disconnects).toBe(1);
+  expect(stale).toBe(1);
+  expect(schemaOf(doc)).toBe(2);
+});
+
+test("shouldReload says yes once per app and marker", () => {
+  const store = fakeStore();
+  expect(shouldReload(store, "notes", 2)).toBe(true);
+  expect(shouldReload(store, "notes", 2)).toBe(false);
+  expect(shouldReload(store, "notes", 3)).toBe(true);
+  expect(shouldReload(store, "scratch", 3)).toBe(true);
+  expect(store.dump()).toEqual({ "garage.stale.notes": "3", "garage.stale.scratch": "3" });
 });
