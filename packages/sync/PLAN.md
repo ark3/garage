@@ -30,6 +30,8 @@ Everything below assumes any identity the app receives is allowed, and treats "w
 Call it `openApp(name, schema)` or similar; it: opens the app doc, attaches local persistence unconditionally (every app is offline-first), resolves the actor (fetch `/whoami`, cache in `localStorage` for offline starts, look up in `actors`), and stamps `clients` after the app doc's `synced` event.
 The stamp is written only after sync completes, so its presence on the server means that client has both the new bundle and the current state.
 Backup stays outside: it opens no doc.
+Offline-first means the *data*: a loaded app keeps working and reloads its docs from IndexedDB while the server is unreachable.
+The app shell (HTML, bundle) is still served by the Worker, so a reload with the server down fails; caching the shell is a service worker, which needs a secure context and is a separate decision (verified on the scratch page 2026-09-14).
 
 **Two version numbers.**
 - Build identity: the git short sha, baked in at build time (`bun build --define`), monorepo-wide.
