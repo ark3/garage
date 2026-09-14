@@ -34,7 +34,9 @@ The exact field types and the plain functions over them are pinned by `apps/flas
 `openApp` opens one doc; the other two are opened with local persistence the same way (offline-first is unconditional).
 That is a small addition to `@garage/sync`: a way to open a further doc with `y-indexeddb` attached, exported beside `openApp`, since apps do not depend on `y-indexeddb` directly.
 The schema marker and the stale guard live on the app doc only; deck and progress docs carry no marker.
-*Inference:* one guard per app is enough because one bundle writes all three shapes, and a stale bundle stops at the index before it can open a deck.
+*Inference:* one guard per app is enough because one bundle writes all three shapes.
+Checked while building the helper: going stale disconnects only the app doc and resolves the `stale` promise; nothing halts app code, and stale can arrive after a deck is already open.
+So the app gates on `stale` itself: it opens no further doc once stale has resolved, and closes any it holds when stale resolves.
 
 **Scheduling is SM-2, client-side, pure.**
 `apps/flashcards/src/sm2.ts`: a function from (previous state, grade, now) to the next state, following the published SM-2 rules (ease floor 1.3; intervals 1, 6, then previous × ease; a failing grade resets repetitions).
