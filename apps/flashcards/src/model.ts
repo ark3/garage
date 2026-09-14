@@ -10,6 +10,11 @@
 
 import * as Y from "yjs";
 import { uuid } from "@garage/sync";
+// The progress doc stores exactly what the scheduler produces, so the SM-2
+// state type comes from there rather than being restated here.
+import type { Review } from "./sm2";
+
+export type { Review };
 
 export const SCHEMA = 1;
 
@@ -121,15 +126,6 @@ export function copyCards(from: Y.Doc, to: Y.Doc): void {
 }
 
 // --- a progress doc ---
-
-// SM-2 state for one card. The arithmetic lives elsewhere; this module only
-// stores what it produces.
-export type Review = {
-  ease: number;
-  interval: number; // days
-  reps: number;
-  due: number; // epoch ms
-};
 
 export type LogEntry = {
   deckId: string;
