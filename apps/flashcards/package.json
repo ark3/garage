@@ -1,0 +1,8 @@
+{
+  "name": "@garage/flashcards",
+  "private": true,
+  "dependencies": {
+    "@garage/sync": "workspace:*",
+    "yjs": "13.6.32"
+  }
+}
