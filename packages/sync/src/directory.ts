@@ -63,11 +63,11 @@ export function getClient(doc: Y.Doc, id: string): Client | undefined {
   return entry ? (entry.toJSON() as Client) : undefined;
 }
 
-// Hand edits (label, or reassigning the actor). Creates the entry if absent.
+// Hand edits: `label` only, since the stamp rewrites `actor`. Creates the entry if absent.
 export function setClient(
   doc: Y.Doc,
   id: string,
-  fields: Partial<Pick<Client, "actor" | "label">>,
+  fields: Pick<Client, "label">,
 ): void {
   doc.transact(() => {
     const entry = ensureClient(clientsMap(doc), id);
