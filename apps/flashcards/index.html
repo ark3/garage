@@ -64,6 +64,17 @@
     .side label { display: block; color: #666; font-size: 0.85rem; }
     .side textarea { width: 100%; min-height: 3.5rem; padding: 0.35rem 0.5rem; }
     .side select { margin: 0.2rem 0; }
+    #study-count { color: #666; }
+    .face {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 0.3rem;
+      padding: 0.75rem;
+      margin-bottom: 0.75rem;
+      white-space: pre-wrap;
+    }
+    #grades { display: flex; gap: 0.5rem; }
+    #grades button { flex: 1; }
     .preview:empty { display: none; }
     .preview { background: #fafafa; padding: 0.4rem; white-space: pre-wrap; }
     @media (min-width: 40rem) {
@@ -85,6 +96,19 @@
       <input id="deck-name" placeholder="New deck" required>
       <button>Add deck</button>
     </form>
+  </section>
+  <section id="study" hidden>
+    <p id="study-count"></p>
+    <div id="study-front" class="face"></div>
+    <button id="reveal">Show answer</button>
+    <div id="study-back" class="face" hidden></div>
+    <div id="grades" hidden>
+      <button data-grade="again">Again</button>
+      <button data-grade="hard">Hard</button>
+      <button data-grade="good">Good</button>
+      <button data-grade="easy">Easy</button>
+    </div>
+    <button id="study-done" hidden>← decks</button>
   </section>
   <section id="deck" hidden>
     <input id="deck-title" aria-label="Deck name">

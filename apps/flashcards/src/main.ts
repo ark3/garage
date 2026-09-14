@@ -1,6 +1,7 @@
 // Flashcards, the decks screen: the index doc (the app doc) lists the decks,
 // and a deck's cards live in a doc of their own, opened while that deck is on
-// screen and closed on the way out. Studying is a separate screen.
+// screen and closed on the way out. Studying is a separate screen over the same
+// deck doc plus the person's progress doc, both let go on the way back.
 
 import { openApp, openPersistedDoc } from "@garage/sync";
 import {
@@ -12,11 +13,15 @@ import {
   deckDoc,
   decksMap,
   deleteCard,
+  dueCards,
+  gradeCard,
   indexDoc,
   listCards,
   listDecks,
+  progressDoc,
   renameDeck,
   setSide,
+  type Button,
   type Card,
   type Side,
   type SideKind,
@@ -36,6 +41,13 @@ const newEl = document.getElementById("new") as HTMLFormElement;
 const nameEl = document.getElementById("deck-name") as HTMLInputElement;
 const addCardEl = document.getElementById("add-card")!;
 const unmappedEl = document.getElementById("unmapped")!;
+const studyEl = document.getElementById("study")!;
+const countEl = document.getElementById("study-count")!;
+const frontEl = document.getElementById("study-front")!;
+const answerEl = document.getElementById("study-back")!;
+const revealEl = document.getElementById("reveal") as HTMLButtonElement;
+const gradesEl = document.getElementById("grades")!;
+const doneEl = document.getElementById("study-done") as HTMLButtonElement;
 
 // --- Identity: acting needs a handle, since `createdBy` records one and the
 // deck names a person by handle everywhere. An unmapped identity still reads
@@ -43,7 +55,8 @@ const unmappedEl = document.getElementById("unmapped")!;
 function renderIdentity() {
   unmappedEl.textContent = me.current
     ? ""
-    : `${actor} has no handle in the actors directory, so nothing here can be created or edited`;
+    : `${actor} has no handle in the actors directory, so nothing here can be` +
+      ` created or edited and there is no handle to study under`;
   renderDecks();
   renderCards();
 }
@@ -74,7 +87,10 @@ function renderDecks() {
         const copy = document.createElement("button");
         copy.textContent = "Copy";
         copy.addEventListener("click", () => copyDeck(id, deck.name));
-        li.append(name, by, copy);
+        const study = document.createElement("button");
+        study.textContent = "Study";
+        study.addEventListener("click", () => studyDeck(id));
+        li.append(name, by, copy, study);
         return li;
       }),
   );
@@ -114,10 +130,14 @@ let rows = new Map<string, { el: HTMLLIElement; show(card: Card): void }>();
 function showList() {
   open?.held.close();
   open = null;
+  session?.deck.close();
+  session?.progress.close();
+  session = null;
   rows.clear();
   cardsEl.replaceChildren();
   decksEl.hidden = false;
   deckEl.hidden = true;
+  studyEl.hidden = true;
   backEl.hidden = true;
 }
 
@@ -234,6 +254,73 @@ function renderCards() {
   }
   for (const [id, card] of cards) rows.get(id)!.show(card);
 }
+
+// --- Study: the deck doc and the person's progress doc, held together for one
+// session. An unmapped identity has no handle, so no progress doc and no queue;
+// the message above says so and this refuses, like every other acting control.
+let session: { deckId: string; deck: Held; progress: Held; queue: string[] } | null = null;
+let shown: Card;
+
+async function studyDeck(id: string) {
+  const m = me.current;
+  if (!m || stalled) return;
+  showList();
+  const deck = openPersistedDoc(deckDoc(id));
+  const progress = openPersistedDoc(progressDoc(m.handle));
+  session = { deckId: id, deck, progress, queue: [] };
+  decksEl.hidden = true;
+  studyEl.hidden = false;
+  backEl.hidden = false;
+  countEl.textContent = "loading…";
+  frontEl.hidden = revealEl.hidden = answerEl.hidden = gradesEl.hidden = doneEl.hidden = true;
+  // The queue is one snapshot of what is due, taken only once both docs have
+  // arrived: an empty progress doc would make every card look new. Leaving
+  // while they load closes them, and then there is nothing to show.
+  await Promise.all([synced(deck), synced(progress)]);
+  if (session?.deck !== deck) return;
+  session.queue = dueCards(progress.doc, id, deck.doc, Date.now());
+  renderStudy();
+}
+
+// The head of the queue, front first; the back and the buttons wait for reveal.
+function renderStudy() {
+  const cardId = session!.queue[0];
+  doneEl.hidden = cardId !== undefined;
+  frontEl.hidden = revealEl.hidden = cardId === undefined;
+  answerEl.hidden = gradesEl.hidden = true;
+  if (cardId === undefined) {
+    countEl.textContent = "nothing left to study in this deck";
+    return;
+  }
+  // Another client can delete a card mid-session; the queue is a snapshot.
+  const card = cardsMap(session!.deck.doc).get(cardId)?.toJSON() as Card | undefined;
+  if (!card) {
+    session!.queue.shift();
+    renderStudy();
+    return;
+  }
+  shown = card;
+  countEl.textContent = `${session!.queue.length} to go`;
+  renderSide(frontEl, card.front);
+}
+
+revealEl.addEventListener("click", () => {
+  renderSide(answerEl, shown.back);
+  revealEl.hidden = true;
+  answerEl.hidden = gradesEl.hidden = false;
+});
+
+// Again comes round again this session; the other three are done with for now.
+for (const button of gradesEl.querySelectorAll("button")) {
+  button.addEventListener("click", () => {
+    const cardId = session!.queue.shift()!;
+    gradeCard(session!.progress.doc, session!.deckId, cardId, button.dataset.grade as Button);
+    if (button.dataset.grade === "again") session!.queue.push(cardId);
+    renderStudy();
+  });
+}
+
+doneEl.addEventListener("click", showList);
 
 // Any index change can reorder the list or rename the open deck; the list is
 // small, so just re-render it.

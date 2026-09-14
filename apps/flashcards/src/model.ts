@@ -12,9 +12,9 @@ import * as Y from "yjs";
 import { uuid } from "@garage/sync";
 // The progress doc stores exactly what the scheduler produces, so the SM-2
 // state type comes from there rather than being restated here.
-import type { Review } from "./sm2";
+import { QUALITY, schedule, type Button, type Review } from "./sm2";
 
-export type { Review };
+export type { Button, Review };
 
 export const SCHEMA = 1;
 
@@ -163,6 +163,21 @@ export function recordReview(
     reviewsMap(doc).set(key(deckId, cardId), next);
     reviewLog(doc).push([{ deckId, cardId, at, grade }]);
   });
+}
+
+// One answer, whole: the scheduler decides the next state from the state the
+// card carries now, and the log line records that button's quality. The study
+// screen and the headless check both answer cards through here, so neither can
+// compose the two halves differently from the other.
+export function gradeCard(
+  progress: Y.Doc,
+  deckId: string,
+  cardId: string,
+  button: Button,
+  now = Date.now(),
+): void {
+  const next = schedule(getReview(progress, deckId, cardId), button, now);
+  recordReview(progress, deckId, cardId, QUALITY[button], next, now);
 }
 
 // Card ids of `deck` that this person owes at `now`: never reviewed, or due.
