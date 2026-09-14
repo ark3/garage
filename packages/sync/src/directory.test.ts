@@ -52,10 +52,16 @@ test("restamp updates only the app stamp, preserving label and firstSeen", () =>
   const second = getClient(doc, CLIENT)!;
   expect(second.label).toBe("Someone's phone");
   expect(second.firstSeen).toBe(first.firstSeen);
-  expect(second.actor).toBe(first.actor);
   expect(second.apps.notes.build).toBe("def5678");
   expect(second.apps.notes.schema).toBe(2);
   expect(second.apps.notes.syncedAt).toBeGreaterThanOrEqual(first.apps.notes.syncedAt);
+});
+
+test("restamp by a different person rewrites actor", () => {
+  const doc = new Y.Doc();
+  stampClient(doc, notes);
+  stampClient(doc, { ...notes, actor: "person-b@example.com" });
+  expect(getClient(doc, CLIENT)!.actor).toBe("person-b@example.com");
 });
 
 test("stamps for two apps on one client coexist", () => {

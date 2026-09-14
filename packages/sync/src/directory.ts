@@ -76,15 +76,17 @@ export function setClient(
 }
 
 // Records that this client has synced `app` at `build`/`schema` right now.
-// First sight of a client creates its entry with `actor` and `firstSeen`;
-// after that only the app's own sub-entry changes.
+// First sight of a client creates its entry with `firstSeen`. `actor` is
+// rewritten every time: it is whoever the server authenticates on this
+// browser's socket today, and a browser can change hands. `label` is the
+// only field a hand edit owns.
 export function stampClient(
   doc: Y.Doc,
   stamp: { clientId: string; actor: string; app: string; build: string; schema: number },
 ): void {
   doc.transact(() => {
     const entry = ensureClient(clientsMap(doc), stamp.clientId);
-    if (!entry.has("actor")) entry.set("actor", stamp.actor);
+    entry.set("actor", stamp.actor);
     if (!entry.has("firstSeen")) entry.set("firstSeen", Date.now());
     const apps = entry.get("apps") as Y.Map<Y.Map<unknown>>;
     let app = apps.get(stamp.app);
