@@ -4,7 +4,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./identity": "./src/identity.ts",
-    "./backup": "./src/backup.ts"
+    "./backup": "./src/backup.ts",
+    "./directory": "./src/directory.ts"
   },
   "dependencies": {
     "y-websocket": "3.1.0",
