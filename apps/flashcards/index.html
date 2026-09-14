@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>flashcards</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      font-size: 1rem;
+      padding: 0.75rem;
+      max-width: 50rem;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    h1 { font-size: 1.1rem; margin: 0; flex: 1; }
+    #stale:empty, #unmapped:empty { display: none; }
+    #stale, #unmapped { margin: 0.5rem 0; padding: 0.5rem 0.75rem; background: #fee; color: #900; }
+    button, input, select, textarea { font: inherit; }
+    button { padding: 0.35rem 0.6rem; cursor: pointer; }
+    ul { list-style: none; margin: 0.75rem 0 0; padding: 0; }
+    #deck-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid #eee;
+    }
+    #deck-list .name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      background: none;
+      border: none;
+      text-align: left;
+      padding: 0;
+    }
+    #deck-list .by { color: #999; font-size: 0.85rem; }
+    #new { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+    #new input { flex: 1; padding: 0.35rem 0.5rem; }
+    #deck-title { width: 100%; padding: 0.35rem 0.5rem; margin-top: 0.75rem; }
+    #cards li {
+      border: 1px solid #ddd;
+      border-radius: 0.3rem;
+      padding: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .card-head { display: flex; justify-content: flex-end; }
+    .delete {
+      border: none;
+      background: none;
+      color: #999;
+      font-size: 1rem;
+      padding: 0 0.2rem;
+    }
+    .delete:hover { color: #c00; }
+    .side { margin-top: 0.4rem; }
+    .side label { display: block; color: #666; font-size: 0.85rem; }
+    .side textarea { width: 100%; min-height: 3.5rem; padding: 0.35rem 0.5rem; }
+    .side select { margin: 0.2rem 0; }
+    .preview:empty { display: none; }
+    .preview { background: #fafafa; padding: 0.4rem; white-space: pre-wrap; }
+    @media (min-width: 40rem) {
+      .sides { display: flex; gap: 0.75rem; }
+      .side { flex: 1; min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>flashcards</h1>
+    <button id="back" hidden>← decks</button>
+  </header>
+  <p id="stale"></p>
+  <p id="unmapped"></p>
+  <section id="decks">
+    <ul id="deck-list"></ul>
+    <form id="new">
+      <input id="deck-name" placeholder="New deck" required>
+      <button>Add deck</button>
+    </form>
+  </section>
+  <section id="deck" hidden>
+    <input id="deck-title" aria-label="Deck name">
+    <ul id="cards"></ul>
+    <button id="add-card">Add card</button>
+  </section>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

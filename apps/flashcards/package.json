@@ -3,6 +3,7 @@
   "private": true,
   "dependencies": {
     "@garage/sync": "workspace:*",
+    "abcjs": "6.7.0",
     "yjs": "13.6.32"
   }
 }
