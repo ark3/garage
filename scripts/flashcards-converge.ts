@@ -4,9 +4,11 @@
 // fixed `flashcards`) so runs never share state. Two clients build a deck and
 // converge, two handles study it with separate progress, a copied deck keeps its
 // card ids so progress still resolves, a thousand-card deck round-trips into a
-// fresh client, and everything survives /debug/amnesia.
+// fresh client, a thirty-card deck plans five fresh cards and none more once
+// they graduate, and everything survives /debug/amnesia.
 
 import * as Y from "yjs";
+import { uuid } from "@garage/sync";
 import {
   addCard,
   cardsMap,
@@ -15,10 +17,13 @@ import {
   deckDoc,
   decksMap,
   dueCards,
+  FRESH_PER_DAY,
   getReview,
+  gradeCard,
   indexDoc,
   listCards,
   listDecks,
+  planSession,
   progressDoc,
   recordReview,
   renameDeck,
@@ -149,6 +154,29 @@ if (listCards(bigFresh.doc)[999][1].back.text !== `${999 * 7}`) {
   throw new Error("the thousand-card deck did not round-trip");
 }
 
+// --- a session on a thirty-card deck: five fresh cards, then no more today ---
+
+const drillId = uuid();
+const drill = open(deckDoc(drillId, suffix));
+drill.doc.transact(() => {
+  for (let i = 0; i < 30; i++) {
+    addCard(drill.doc, { kind: "plain", text: `${i} x 8` }, { kind: "plain", text: `${i * 8}` });
+  }
+});
+const plan = planSession(alpha.doc, drillId, drill.doc, now);
+if (plan.fresh.length !== FRESH_PER_DAY || plan.review.length !== 0 || plan.warmup.length !== 0) {
+  throw new Error(`a new deck should plan ${FRESH_PER_DAY} fresh cards and nothing else`);
+}
+console.log(`ok: a thirty-card deck plans ${FRESH_PER_DAY} fresh cards`);
+for (const cardId of plan.fresh) gradeCard(alpha.doc, drillId, cardId, "good", now);
+const alphaLater = open(progressDoc(ALPHA, suffix));
+await until(
+  () =>
+    reviewLog(alphaLater.doc).length === 1 + FRESH_PER_DAY &&
+    planSession(alphaLater.doc, drillId, drill.doc, now).fresh.length === 0,
+  "once today's fresh cards graduate, a second plan the same day introduces none",
+);
+
 // --- simulated eviction, then fresh clients on all three doc kinds ---
 
 const amnesia = await sfetch(`${HTTP}/debug/amnesia`);
@@ -171,11 +199,11 @@ await until(
     cardsMap(deck2.doc).size === 3 &&
     bothSides(deck2.doc) &&
     getReview(alpha2.doc, deckId, cardA)?.due === tomorrow &&
-    reviewLog(alpha2.doc).length === 1,
+    reviewLog(alpha2.doc).length === 1 + FRESH_PER_DAY,
   "fresh clients hydrate index, deck, and progress from SQLite",
 );
 
-for (const x of [indexA, indexB, deckA, deckB, alpha, bravo, bravoFresh, copy, copyFresh, big, bigFresh, index2, deck2, alpha2]) {
+for (const x of [indexA, indexB, deckA, deckB, alpha, bravo, bravoFresh, copy, copyFresh, big, bigFresh, drill, alphaLater, index2, deck2, alpha2]) {
   x.provider.destroy();
 }
 console.log("SUCCESS");
