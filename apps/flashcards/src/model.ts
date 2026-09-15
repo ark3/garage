@@ -189,3 +189,52 @@ export function dueCards(progress: Y.Doc, deckId: string, deck: Y.Doc, now: numb
     })
     .map(([cardId]) => cardId);
 }
+
+// The two session caps, the same for every deck: they keep the morning drill
+// short whatever the deck holds, and they win over the scheduler.
+export const FRESH_PER_DAY = 5;
+export const REVIEW_PER_SESSION = 20;
+
+export type Plan = {
+  warmup: string[]; // not due, longest interval first: two well-known cards
+  review: string[]; // due, most overdue first, cut at REVIEW_PER_SESSION
+  fresh: string[]; // never studied, oldest first, cut at what is left of today's quota
+};
+
+function sameLocalDay(a: number, b: number): boolean {
+  return new Date(a).toDateString() === new Date(b).toDateString();
+}
+
+// Cards of `deck` first logged on the calendar day of `now`. Fresh is decided
+// by the progress entry, not the log, so a card logged without an entry (which
+// nothing writes today) both spends quota here and stays fresh.
+function introducedToday(progress: Y.Doc, deckId: string, now: number): number {
+  const first = new Map<string, number>();
+  for (const entry of reviewLog(progress).toArray()) {
+    if (entry.deckId !== deckId) continue;
+    const seen = first.get(entry.cardId);
+    if (seen === undefined || entry.at < seen) first.set(entry.cardId, entry.at);
+  }
+  let n = 0;
+  for (const at of first.values()) if (sameLocalDay(at, now)) n++;
+  return n;
+}
+
+// One session of `deck` for this person at `now`. Order within each list is
+// deterministic; shuffling is the session's job, not the planner's.
+export function planSession(progress: Y.Doc, deckId: string, deck: Y.Doc, now: number): Plan {
+  const known: [string, Review][] = [];
+  const fresh: string[] = [];
+  for (const [cardId] of listCards(deck)) {
+    const review = getReview(progress, deckId, cardId);
+    if (review) known.push([cardId, review]);
+    else fresh.push(cardId);
+  }
+  const due = known.filter(([, r]) => r.due <= now).sort((a, b) => a[1].due - b[1].due);
+  const notDue = known.filter(([, r]) => r.due > now).sort((a, b) => b[1].interval - a[1].interval);
+  return {
+    warmup: notDue.slice(0, 2).map(([id]) => id),
+    review: due.slice(0, REVIEW_PER_SESSION).map(([id]) => id),
+    fresh: fresh.slice(0, Math.max(0, FRESH_PER_DAY - introducedToday(progress, deckId, now))),
+  };
+}
