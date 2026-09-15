@@ -2,6 +2,7 @@
 
 Pre-design notes settled in discussion on 2026-09-14, before any plan doc exists.
 The app shipped 2026-09-14; the plan doc that followed this is gone, and its decisions live in `src/model.ts` and `src/sm2.ts`.
+The study session layer (intro, learning steps, relearning, caps, keyboard, reward) shipped the same day; see "Study sessions" at the end.
 Everything an app is expected to do at startup is in `apps/WORKFLOW.md` ("Every app works this way") and is not repeated here.
 
 ## Why flashcards is sequenced where it is
@@ -39,3 +40,12 @@ Recommendation, not a commitment: also keep the raw review log (one entry per an
 
 Abhay iterates on the UI with arithmetic decks for the kid and notation decks for himself, on the family server, under one identity.
 Per-person progress is exercised for real after deploy.
+
+## Study sessions
+
+Settled 2026-09-14 from an older brief for a kid's morning fact drill, as one implementation for every deck.
+Prompt-first, self-graded with two outcomes (got it is Good, missed it is Again), shuffled, keyboard-driven (space reveals, right and left arrows grade, with a 300 ms lockout after reveal), and ended by a session-complete moment with a sessions total and no streak.
+Learning state is session-local and never stored: a new card is introduced with both sides, then must be produced twice to graduate, and graduation is its first SM-2 grade; a card still learning when the tab closes is new again tomorrow.
+A review miss writes one Again and the relearning pass writes nothing.
+Warm-up cards (not due, longest interval) write nothing on a hit and are skipped when nothing is due and nothing is new, so a finished deck is not a session.
+The caps (five new per deck per day, twenty reviews per session) are constants in `src/model.ts`; the lifecycle is `src/session.ts`.
