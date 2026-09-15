@@ -46,7 +46,7 @@ The alternative, a stored per-card phase, buys only "skip the intro on a half-le
 
 **Session composition.**
 In this order, then shuffled within each group:
-1. A couple of well-known review cards as a warm-up: not due, longest interval. They are graded like any other card; a miss on one is real information.
+1. A couple of well-known review cards as a warm-up: not due, longest interval. A hit on one writes nothing, since the scheduler had not asked; a miss on one is real information and is graded like a review miss. Skipped when nothing is due and nothing is new: a deck with nothing to study today is not a session.
 2. Due review cards, most overdue first.
 3. New cards up to the daily cap, each going through intro and learning.
 
