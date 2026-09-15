@@ -21,10 +21,14 @@
 // scheduler had not asked about); its miss is a review miss. A card that comes
 // back re-enters REINSERT_DISTANCE positions ahead, or last if fewer remain.
 
+import { FRESH_PER_DAY } from "./model";
 import type { Button } from "./sm2";
 
 export const LEARNING_STEPS = 2;
-export const REINSERT_DISTANCE = 3;
+// A day's new cards are all introduced before any of them is asked back: a
+// shorter distance lets the early ones leapfrog the last intro until they have
+// graduated, and that card is then introduced last and drilled back to back.
+export const REINSERT_DISTANCE = FRESH_PER_DAY;
 
 export type Plan = { warmup: string[]; review: string[]; fresh: string[] };
 export type Phase = "intro" | "prompt";

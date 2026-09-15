@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { FRESH_PER_DAY } from "./model";
 import { LEARNING_STEPS, REINSERT_DISTANCE, startSession, type Outcome } from "./session";
 
 // mulberry32: a tiny seeded generator so shuffles are fixed per test.
@@ -68,6 +69,16 @@ test("a learning card re-enters a few positions ahead, not at the end", () => {
   expect(REINSERT_DISTANCE).toBeLessThan(fresh.length - 1);
 });
 
+test("a day's new cards are all introduced before any is asked back", () => {
+  const fresh = Array.from({ length: FRESH_PER_DAY }, (_, i) => `f${i}`);
+  const shown = walk(startSession({ warmup: [], review: [], fresh }, seeded(5)));
+  expect(shown.slice(0, FRESH_PER_DAY).map((s) => s.phase)).toEqual(fresh.map(() => "intro"));
+  // Then each card is asked, all the others between its two askings.
+  const prompts = shown.slice(FRESH_PER_DAY).map((s) => s.id);
+  expect(prompts.slice(0, FRESH_PER_DAY).sort()).toEqual([...fresh].sort());
+  expect(prompts.slice(FRESH_PER_DAY).sort()).toEqual([...fresh].sort());
+});
+
 test("a missed learning card re-enters ahead too, and at the end when fewer remain", () => {
   const session = startSession({ warmup: [], review: [], fresh: ["a", "b", "c", "d", "e", "f", "g"] }, seeded(3));
   const first = session.current()!.id;
@@ -90,7 +101,7 @@ test("a missed learning card re-enters ahead too, and at the end when fewer rema
 });
 
 test("a review miss writes one Again; the relearning hit writes nothing and the card leaves", () => {
-  const session = startSession({ warmup: [], review: ["r1", "r2", "r3", "r4", "r5"], fresh: [] }, seeded(4));
+  const session = startSession({ warmup: [], review: ["r1", "r2", "r3", "r4", "r5", "r6", "r7"], fresh: [] }, seeded(4));
   const missed = session.current()!;
   expect(missed.phase).toBe("prompt");
   expect(session.answer("miss")).toEqual({ id: missed.id, button: "again" });
