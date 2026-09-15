@@ -16,7 +16,9 @@
 // shown), then prompted until it has been produced LEARNING_STEPS times in a
 // row; that last hit writes Good, a miss resets the count. A review hit writes
 // Good; a review miss writes Again and the card returns once as relearning,
-// whose hit writes nothing, so one miss is one log entry. A card that comes
+// whose hit writes nothing, so one miss is one log entry. A warm-up card was
+// not due, so its hit writes nothing (a Good from today would push a card the
+// scheduler had not asked about); its miss is a review miss. A card that comes
 // back re-enters REINSERT_DISTANCE positions ahead, or last if fewer remain.
 
 import type { Button } from "./sm2";
@@ -38,6 +40,7 @@ export type Session = {
 type Entry =
   | { id: string; kind: "intro" }
   | { id: string; kind: "learning"; hits: number }
+  | { id: string; kind: "warmup" }
   | { id: string; kind: "review" }
   | { id: string; kind: "relearning" };
 
@@ -52,7 +55,7 @@ function shuffle<T>(items: T[], random: () => number): T[] {
 
 export function startSession(plan: Plan, random: () => number = Math.random): Session {
   const queue: Entry[] = [
-    ...shuffle(plan.warmup, random).map((id) => ({ id, kind: "review" }) as Entry),
+    ...shuffle(plan.warmup, random).map((id) => ({ id, kind: "warmup" }) as Entry),
     ...shuffle(plan.review, random).map((id) => ({ id, kind: "review" }) as Entry),
     ...shuffle(plan.fresh, random).map((id) => ({ id, kind: "intro" }) as Entry),
   ];
@@ -86,8 +89,9 @@ export function startSession(plan: Plan, random: () => number = Math.random): Se
           requeue({ ...entry, hits });
           return undefined;
         }
+        case "warmup":
         case "review":
-          if (hit) return { id: entry.id, button: "good" };
+          if (hit) return entry.kind === "review" ? { id: entry.id, button: "good" } : undefined;
           requeue({ id: entry.id, kind: "relearning" });
           return { id: entry.id, button: "again" };
         case "relearning":

@@ -116,6 +116,20 @@ test("a relearning miss brings the card back again without another grade", () =>
   expect(session.current()).toBeUndefined();
 });
 
+test("a warm-up hit writes nothing and the card leaves; a warm-up miss writes Again and it returns as relearning", () => {
+  const hit = startSession({ warmup: ["w"], review: ["r"], fresh: [] }, seeded(9));
+  expect(hit.current()).toEqual({ id: "w", phase: "prompt" });
+  expect(hit.answer("hit")).toBeUndefined();
+  expect(walk(hit).map((s) => s.id)).toEqual(["r"]);
+
+  const miss = startSession({ warmup: ["w"], review: ["r"], fresh: [] }, seeded(9));
+  expect(miss.answer("miss")).toEqual({ id: "w", button: "again" });
+  expect(miss.answer("hit")).toEqual({ id: "r", button: "good" });
+  expect(miss.current()).toEqual({ id: "w", phase: "prompt" });
+  expect(miss.answer("hit")).toBeUndefined();
+  expect(miss.current()).toBeUndefined();
+});
+
 test("a session of warm-up and review cards ends after each is answered once", () => {
   const warmup = ["w1", "w2"];
   const review = ["r1", "r2", "r3"];
