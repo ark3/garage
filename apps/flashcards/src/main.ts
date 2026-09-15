@@ -177,15 +177,39 @@ addCardEl.addEventListener("click", () => {
 // An abc side previews as engraved notation. The renderer is by far this app's
 // largest dependency, so it is imported only when an abc side is first shown
 // and the bundler gives it a chunk of its own; arithmetic decks never fetch it.
-// `responsive` keeps the engraving inside a phone's width rather than abcjs's
-// 770px default.
 async function renderSide(el: HTMLElement, side: Side) {
   if (side.kind !== "abc") {
     el.textContent = side.text;
     return;
   }
   const { renderAbc } = await import("abcjs");
-  renderAbc(el, side.text, { responsive: "resize" });
+  renderAbc(el, side.text);
+  fitNotation(el);
+}
+
+// abcjs lays a tune out on a fixed 740px staff, so a one-note snippet lands
+// small in the top-left corner of whatever box holds it. Crop the drawing to
+// what was actually drawn and let it fill the width, scaling up by at most
+// ENGRAVING_ZOOM so a single note is big on a card but a full line is not.
+// abcjs also pins the container to the uncropped drawing's height with inline
+// style, which would clip the enlarged one; that is undone here too.
+const ENGRAVING_ZOOM = 2.5;
+function fitNotation(el: HTMLElement) {
+  const svg = el.querySelector("svg");
+  if (!svg) return;
+  const box = svg.getBBox();
+  if (!box.width) return;
+  const pad = 6;
+  const width = box.width + 2 * pad;
+  svg.setAttribute("viewBox", `${box.x - pad} ${box.y - pad} ${width} ${box.height + 2 * pad}`);
+  svg.removeAttribute("width");
+  svg.removeAttribute("height");
+  svg.style.display = "block";
+  svg.style.width = `${width * ENGRAVING_ZOOM}px`;
+  svg.style.maxWidth = "100%";
+  svg.style.height = "auto";
+  el.style.height = "";
+  el.style.overflow = "";
 }
 
 function sideEditor(cardId: string, which: "front" | "back") {
