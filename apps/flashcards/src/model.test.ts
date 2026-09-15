@@ -9,6 +9,7 @@ import {
   recordReview,
   REVIEW_PER_SESSION,
   reviewLog,
+  sessionsTotal,
   type Review,
 } from "./model";
 
@@ -129,4 +130,18 @@ test("a log line with no progress entry counts toward today but leaves the card 
 
   const plan = planSession(progress, DECK, deck, NOW);
   expect(plan.fresh).toEqual(ids.slice(0, FRESH_PER_DAY - 1));
+});
+
+test("sessions total is the distinct local days with log entries, across decks", () => {
+  const progress = new Y.Doc();
+  expect(sessionsTotal(progress)).toBe(0);
+
+  const day = (d: number, hour: number) => new Date(2026, 0, d, hour).getTime();
+  reviewLog(progress).push([
+    { deckId: "a", cardId: "x", at: day(1, 8), grade: 4 },
+    { deckId: "b", cardId: "y", at: day(1, 20), grade: 0 },
+    { deckId: "a", cardId: "x", at: day(2, 0), grade: 4 },
+    { deckId: "a", cardId: "z", at: day(9, 8), grade: 4 },
+  ]);
+  expect(sessionsTotal(progress)).toBe(3);
 });

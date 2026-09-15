@@ -180,6 +180,12 @@ export function gradeCard(
   recordReview(progress, deckId, cardId, QUALITY[button], next, now);
 }
 
+// The sessions total the completion screen shows: distinct local calendar days
+// with a log entry, across every deck. It only ever goes up; there is no streak.
+export function sessionsTotal(progress: Y.Doc): number {
+  return new Set(reviewLog(progress).map((entry) => new Date(entry.at).toDateString())).size;
+}
+
 // Card ids of `deck` that this person owes at `now`: never reviewed, or due.
 export function dueCards(progress: Y.Doc, deckId: string, deck: Y.Doc, now: number): string[] {
   return listCards(deck)
