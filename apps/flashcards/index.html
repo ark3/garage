@@ -73,8 +73,24 @@
       margin-bottom: 0.75rem;
       white-space: pre-wrap;
     }
+    #study-intro { color: #666; margin: 0 0 0.5rem; }
     #grades { display: flex; gap: 0.5rem; }
     #grades button { flex: 1; }
+    #study-finish { text-align: center; padding-top: 1rem; }
+    #study-finish p { margin: 0.5rem 0; }
+    #study-flavour { font-size: 3rem; animation: 1.2s ease-in-out infinite alternate; }
+    #study-flavour:empty { display: none; }
+    #study-sessions { color: #666; }
+    .bounce { animation-name: bounce; }
+    .spin { animation-name: spin; animation-timing-function: linear; animation-direction: normal; animation-duration: 3s; }
+    .rise { animation-name: rise; }
+    .wiggle { animation-name: wiggle; animation-duration: 0.4s; }
+    .pulse { animation-name: pulse; }
+    @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-1rem); } }
+    @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+    @keyframes rise { from { transform: translateY(1rem); opacity: 0.4; } to { transform: translateY(-1rem); opacity: 1; } }
+    @keyframes wiggle { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
+    @keyframes pulse { from { transform: scale(0.8); } to { transform: scale(1.2); } }
     .preview:empty { display: none; }
     .preview { background: #fafafa; padding: 0.4rem; white-space: pre-wrap; }
     @media (min-width: 40rem) {
@@ -99,16 +115,20 @@
   </section>
   <section id="study" hidden>
     <p id="study-count"></p>
+    <p id="study-intro" hidden>A new card: read both sides aloud, then press space</p>
     <div id="study-front" class="face"></div>
-    <button id="reveal">Show answer</button>
     <div id="study-back" class="face" hidden></div>
+    <button id="reveal">Show answer</button>
     <div id="grades" hidden>
-      <button data-grade="again">Again</button>
-      <button data-grade="hard">Hard</button>
-      <button data-grade="good">Good</button>
-      <button data-grade="easy">Easy</button>
+      <button data-outcome="miss">Missed it</button>
+      <button data-outcome="hit">Got it</button>
     </div>
-    <button id="study-done" hidden>← decks</button>
+    <div id="study-finish" hidden>
+      <p id="study-flavour"></p>
+      <p id="study-summary"></p>
+      <p id="study-sessions"></p>
+      <button id="study-done">← decks</button>
+    </div>
   </section>
   <section id="deck" hidden>
     <input id="deck-title" aria-label="Deck name">

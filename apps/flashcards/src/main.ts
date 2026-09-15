@@ -13,19 +13,21 @@ import {
   deckDoc,
   decksMap,
   deleteCard,
-  dueCards,
   gradeCard,
   indexDoc,
   listCards,
   listDecks,
+  planSession,
   progressDoc,
   renameDeck,
+  sessionsTotal,
   setSide,
-  type Button,
   type Card,
   type Side,
   type SideKind,
 } from "./model";
+import { flavourFor } from "./reward";
+import { startSession, type Outcome, type Session } from "./session";
 
 const { doc, actor, me, stale } = await openApp(indexDoc(), SCHEMA);
 
@@ -43,10 +45,15 @@ const addCardEl = document.getElementById("add-card")!;
 const unmappedEl = document.getElementById("unmapped")!;
 const studyEl = document.getElementById("study")!;
 const countEl = document.getElementById("study-count")!;
+const introEl = document.getElementById("study-intro")!;
 const frontEl = document.getElementById("study-front")!;
 const answerEl = document.getElementById("study-back")!;
 const revealEl = document.getElementById("reveal") as HTMLButtonElement;
 const gradesEl = document.getElementById("grades")!;
+const finishEl = document.getElementById("study-finish")!;
+const flavourEl = document.getElementById("study-flavour")!;
+const summaryEl = document.getElementById("study-summary")!;
+const sessionsEl = document.getElementById("study-sessions")!;
 const doneEl = document.getElementById("study-done") as HTMLButtonElement;
 
 // --- Identity: acting needs a handle, since `createdBy` records one and the
@@ -130,9 +137,9 @@ let rows = new Map<string, { el: HTMLLIElement; show(card: Card): void }>();
 function showList() {
   open?.held.close();
   open = null;
-  session?.deck.close();
-  session?.progress.close();
-  session = null;
+  study?.deck.close();
+  study?.progress.close();
+  study = null;
   rows.clear();
   cardsEl.replaceChildren();
   decksEl.hidden = false;
@@ -258,7 +265,7 @@ function renderCards() {
 // --- Study: the deck doc and the person's progress doc, held together for one
 // session. An unmapped identity has no handle, so no progress doc and no queue;
 // the message above says so and this refuses, like every other acting control.
-let session: { deckId: string; deck: Held; progress: Held; queue: string[] } | null = null;
+let study: { deckId: string; deck: Held; progress: Held; session?: Session } | null = null;
 let shown: Card;
 
 async function studyDeck(id: string) {
@@ -267,58 +274,119 @@ async function studyDeck(id: string) {
   showList();
   const deck = openPersistedDoc(deckDoc(id));
   const progress = openPersistedDoc(progressDoc(m.handle));
-  session = { deckId: id, deck, progress, queue: [] };
+  study = { deckId: id, deck, progress };
   decksEl.hidden = true;
   studyEl.hidden = false;
   backEl.hidden = false;
   countEl.textContent = "loading…";
-  frontEl.hidden = revealEl.hidden = answerEl.hidden = gradesEl.hidden = doneEl.hidden = true;
-  // The queue is one snapshot of what is due, taken only once both docs have
-  // arrived: an empty progress doc would make every card look new. Leaving
-  // while they load closes them, and then there is nothing to show.
+  introEl.hidden = frontEl.hidden = answerEl.hidden = revealEl.hidden = gradesEl.hidden = true;
+  finishEl.hidden = true;
+  // The session is planned once, only after both docs have arrived: an empty
+  // progress doc would make every card look new. Leaving while they load
+  // closes them, and then there is nothing to show.
   await Promise.all([synced(deck), synced(progress)]);
-  if (session?.deck !== deck) return;
-  session.queue = dueCards(progress.doc, id, deck.doc, Date.now());
+  if (study?.deck !== deck) return;
+  study.session = startSession(planSession(progress.doc, id, deck.doc, Date.now()));
   renderStudy();
 }
 
-// The head of the queue, front first; the back and the buttons wait for reveal.
+// Whatever the machine says is current: an intro shows both sides at once and
+// space advances; a prompt shows the front and waits for reveal. Nothing
+// current means the session is over.
 function renderStudy() {
-  const cardId = session!.queue[0];
-  doneEl.hidden = cardId !== undefined;
-  frontEl.hidden = revealEl.hidden = cardId === undefined;
-  answerEl.hidden = gradesEl.hidden = true;
-  if (cardId === undefined) {
-    countEl.textContent = "nothing left to study in this deck";
+  const session = study!.session!;
+  const cur = session.current();
+  if (!cur) {
+    renderFinish();
     return;
   }
-  // Another client can delete a card mid-session; the queue is a snapshot.
-  const card = cardsMap(session!.deck.doc).get(cardId)?.toJSON() as Card | undefined;
+  // Another client can delete a card mid-session; the plan is a snapshot. The
+  // machine has no way to drop a card, so a missing one is answered as a hit
+  // whose grade is thrown away, and it works its way out of the queue.
+  const card = cardsMap(study!.deck.doc).get(cur.id)?.toJSON() as Card | undefined;
   if (!card) {
-    session!.queue.shift();
+    session.answer(cur.phase === "intro" ? "advance" : "hit");
     renderStudy();
     return;
   }
   shown = card;
-  countEl.textContent = `${session!.queue.length} to go`;
+  countEl.textContent = `${session.summary().remaining} to go`;
+  introEl.hidden = answerEl.hidden = cur.phase !== "intro";
+  frontEl.hidden = revealEl.hidden = false;
+  gradesEl.hidden = true;
+  revealEl.textContent = cur.phase === "intro" ? "Next" : "Show answer";
   renderSide(frontEl, card.front);
+  if (cur.phase === "intro") renderSide(answerEl, card.back);
 }
 
-revealEl.addEventListener("click", () => {
+function renderFinish() {
+  const { answered, fresh } = study!.session!.summary();
+  introEl.hidden = frontEl.hidden = answerEl.hidden = revealEl.hidden = gradesEl.hidden = true;
+  finishEl.hidden = false;
+  countEl.textContent = "";
+  // An empty plan reads as done, but it is not a session and gets no fanfare.
+  const flavour = answered ? flavourFor(Date.now()) : undefined;
+  flavourEl.textContent = flavour?.emoji ?? "";
+  flavourEl.className = flavour?.motion ?? "";
+  summaryEl.textContent = answered
+    ? `${answered} answered, ${fresh} of them new`
+    : "nothing to study in this deck today";
+  const total = sessionsTotal(study!.progress.doc);
+  sessionsEl.textContent = `${total} session${total === 1 ? "" : "s"} so far`;
+}
+
+// Reveal and the grades are separate steps on purpose, and a grade is refused
+// for a moment after a reveal, so a bounced or held space cannot fall through
+// into "got it".
+const GRADE_LOCKOUT = 300;
+let gradesOpenAt = 0;
+
+function reveal() {
+  const session = study!.session!;
+  if (session.current()?.phase === "intro") {
+    session.answer("advance");
+    renderStudy();
+    return;
+  }
+  if (!gradesEl.hidden) return;
   renderSide(answerEl, shown.back);
   revealEl.hidden = true;
   answerEl.hidden = gradesEl.hidden = false;
+  gradesOpenAt = Date.now() + GRADE_LOCKOUT;
+}
+
+function grade(outcome: Outcome) {
+  if (gradesEl.hidden || Date.now() < gradesOpenAt) return;
+  const written = study!.session!.answer(outcome);
+  if (written) gradeCard(study!.progress.doc, study!.deckId, written.id, written.button);
+  renderStudy();
+}
+
+// A clicked button keeps focus, and space would then both reveal here and
+// click it; dropping focus keeps the keys as the only second path.
+revealEl.addEventListener("click", () => {
+  revealEl.blur();
+  reveal();
 });
 
-// Again comes round again this session; the other three are done with for now.
 for (const button of gradesEl.querySelectorAll("button")) {
   button.addEventListener("click", () => {
-    const cardId = session!.queue.shift()!;
-    gradeCard(session!.progress.doc, session!.deckId, cardId, button.dataset.grade as Button);
-    if (button.dataset.grade === "again") session!.queue.push(cardId);
-    renderStudy();
+    button.blur();
+    grade(button.dataset.outcome as Outcome);
   });
 }
+
+// Keys drive the session only while it is on screen and has cards, and never
+// out from under a text field.
+document.addEventListener("keydown", (e) => {
+  if (studyEl.hidden || !study?.session?.current() || e.repeat) return;
+  if ((e.target as HTMLElement).matches("input, textarea, select")) return;
+  if (e.key === " ") reveal();
+  else if (e.key === "ArrowRight") grade("hit");
+  else if (e.key === "ArrowLeft") grade("miss");
+  else return;
+  e.preventDefault();
+});
 
 doneEl.addEventListener("click", showList);
 
