@@ -92,9 +92,11 @@ function renderDecks() {
         by.className = "by";
         by.textContent = deck.createdBy;
         const copy = document.createElement("button");
+        copy.className = "copy";
         copy.textContent = "Copy";
         copy.addEventListener("click", () => copyDeck(id, deck.name));
         const study = document.createElement("button");
+        study.className = "study";
         study.textContent = "Study";
         study.addEventListener("click", () => studyDeck(id));
         li.append(name, by, copy, study);
@@ -215,7 +217,9 @@ function sideEditor(cardId: string, which: "front" | "back") {
       kind.disabled = text.disabled = !me.current;
       if (document.activeElement !== kind) kind.value = side.kind;
       if (document.activeElement !== text) text.value = side.text;
-      renderSide(preview, side);
+      // A plain side is its own preview; only notation needs engraving.
+      if (side.kind === "abc") renderSide(preview, side);
+      else preview.textContent = "";
     },
   };
 }

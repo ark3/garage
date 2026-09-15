@@ -3,84 +3,224 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f3ee" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#17181c" media="(prefers-color-scheme: dark)">
   <title>flashcards</title>
   <style>
+    :root {
+      color-scheme: light dark;
+      --bg: light-dark(#f6f3ee, #17181c);
+      --surface: light-dark(#fff, #24262c);
+      --surface-2: light-dark(#ece7df, #30333b);
+      --text: light-dark(#1e1c19, #ecebe7);
+      --muted: light-dark(#7c766d, #9b9890);
+      --border: light-dark(#e3ded5, #3a3d45);
+      --accent: light-dark(#e8632b, #f07a45);
+      --accent-soft: light-dark(#fdeee6, #3a2a22);
+      --good: light-dark(#2f9e62, #3cb371);
+      --danger: light-dark(#c0392b, #e57368);
+      --danger-soft: light-dark(#fdeceb, #3d2320);
+      --radius: 1rem;
+      --shadow: 0 1px 2px rgb(0 0 0 / 0.05), 0 6px 16px rgb(0 0 0 / 0.06);
+    }
     * { box-sizing: border-box; }
+    /* Author display rules below must never beat the hidden attribute. */
+    [hidden] { display: none !important; }
+    html { background: var(--bg); }
     body {
-      margin: 0;
-      font-family: system-ui, sans-serif;
+      margin: 0 auto;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      max-width: 40rem;
+      padding: 1rem 1rem 1.5rem;
+      font-family: ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       font-size: 1rem;
-      padding: 0.75rem;
-      max-width: 50rem;
+      line-height: 1.45;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
     }
     header {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-    }
-    h1 { font-size: 1.1rem; margin: 0; flex: 1; }
-    #stale:empty, #unmapped:empty { display: none; }
-    #stale, #unmapped { margin: 0.5rem 0; padding: 0.5rem 0.75rem; background: #fee; color: #900; }
-    button, input, select, textarea { font: inherit; }
-    button { padding: 0.35rem 0.6rem; cursor: pointer; }
-    ul { list-style: none; margin: 0.75rem 0 0; padding: 0; }
-    #deck-list li {
-      display: flex;
-      align-items: center;
       gap: 0.5rem;
-      padding: 0.6rem 0;
-      border-bottom: 1px solid #eee;
+      margin-bottom: 0.75rem;
+    }
+    h1 { flex: 1; margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.01em; }
+    #stale:empty, #unmapped:empty { display: none; }
+    #stale, #unmapped {
+      margin: 0 0 0.75rem;
+      padding: 0.6rem 0.9rem;
+      border-radius: 0.75rem;
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    /* Controls */
+    button, input, select, textarea { font: inherit; color: inherit; }
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 0.55rem 1rem;
+      min-height: 2.5rem;
+      background: var(--surface-2);
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.08s ease, filter 0.15s ease;
+    }
+    button:hover { filter: brightness(0.96); }
+    button:active { transform: scale(0.97); }
+    button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    #reveal, #study-done, #deck-list .study, #new button { background: var(--accent); color: #fff; }
+    #back { background: none; color: var(--accent); padding: 0.4rem 0.5rem 0.4rem 0; font-weight: 700; }
+    input, textarea, select {
+      border: 1.5px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.55rem 0.8rem;
+      background: var(--surface);
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    /* Deck list */
+    ul { list-style: none; margin: 0; padding: 0; }
+    #deck-list { display: grid; gap: 0.6rem; }
+    #deck-list li {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      grid-template-areas: "name copy study" "by copy study";
+      align-items: center;
+      column-gap: 0.5rem;
+      padding: 0.75rem 0.6rem 0.75rem 1rem;
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
     }
     #deck-list .name {
-      flex: 1;
+      grid-area: name;
+      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       background: none;
-      border: none;
-      text-align: left;
+      border-radius: 0;
       padding: 0;
+      min-height: 0;
+      text-align: left;
+      font-size: 1.1rem;
+      font-weight: 700;
     }
-    #deck-list .by { color: #999; font-size: 0.85rem; }
-    #new { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
-    #new input { flex: 1; padding: 0.35rem 0.5rem; }
-    #deck-title { width: 100%; padding: 0.35rem 0.5rem; margin-top: 0.75rem; }
+    #deck-list .by { grid-area: by; color: var(--muted); font-size: 0.8rem; }
+    #deck-list .by::before { content: "by "; }
+    #deck-list .copy { grid-area: copy; background: none; color: var(--muted); padding: 0.4rem 0.6rem; }
+    #deck-list .study { grid-area: study; }
+    #new { display: flex; gap: 0.5rem; margin-top: 1rem; }
+    #new input { flex: 1; min-width: 0; }
+
+    /* Deck editor */
+    #deck-title {
+      width: 100%;
+      margin: 0 0 0.75rem;
+      padding: 0.3rem 0;
+      font-size: 1.5rem;
+      font-weight: 800;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+      background: transparent;
+    }
+    #deck-title:focus { box-shadow: none; border-bottom-color: var(--accent); }
+    #cards { display: grid; gap: 0.75rem; }
     #cards li {
-      border: 1px solid #ddd;
-      border-radius: 0.3rem;
-      padding: 0.5rem;
+      padding: 0.6rem 1rem 1rem;
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .card-head { display: flex; justify-content: flex-end; margin-right: -0.5rem; }
+    .delete { background: none; color: var(--muted); padding: 0.2rem 0.5rem; min-height: 0; font-size: 1.25rem; line-height: 1; }
+    .delete:hover { color: var(--danger); filter: none; }
+    .side {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 0.35rem 0.5rem;
+      margin-top: 0.25rem;
+    }
+    .side label {
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .side select { padding: 0.15rem 0.5rem; font-size: 0.85rem; border-radius: 999px; color: var(--muted); }
+    .side textarea, .side .preview { grid-column: 1 / -1; }
+    .side textarea { width: 100%; min-height: 3.25rem; resize: vertical; }
+    .preview:empty { display: none; }
+    .preview { background: var(--bg); border-radius: 0.75rem; padding: 0.5rem 0.75rem; white-space: pre-wrap; }
+    #add-card {
+      width: 100%;
       margin-top: 0.75rem;
-    }
-    .card-head { display: flex; justify-content: flex-end; }
-    .delete {
-      border: none;
+      min-height: 3rem;
       background: none;
-      color: #999;
-      font-size: 1rem;
-      padding: 0 0.2rem;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      color: var(--muted);
     }
-    .delete:hover { color: #c00; }
-    .side { margin-top: 0.4rem; }
-    .side label { display: block; color: #666; font-size: 0.85rem; }
-    .side textarea { width: 100%; min-height: 3.5rem; padding: 0.35rem 0.5rem; }
-    .side select { margin: 0.2rem 0; }
-    #study-count { color: #666; }
+    @media (min-width: 40rem) {
+      .sides { display: flex; gap: 1rem; }
+      .side { flex: 1; min-width: 0; }
+    }
+
+    /* Study */
+    #study { flex: 1; display: flex; flex-direction: column; gap: 0.75rem; }
+    #study-count:empty { display: none; }
+    #study-count { margin: 0; text-align: center; color: var(--muted); font-weight: 600; font-size: 0.9rem; }
+    #study-intro {
+      margin: auto 0 0;
+      padding: 0.6rem 1rem;
+      border-radius: 0.75rem;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 600;
+      text-align: center;
+    }
     .face {
-      background: #fafafa;
-      border: 1px solid #ddd;
-      border-radius: 0.3rem;
-      padding: 0.75rem;
-      margin-bottom: 0.75rem;
+      display: grid;
+      place-items: center;
+      min-height: 9rem;
+      padding: 1.5rem 1.25rem;
+      background: var(--surface);
+      border-radius: 1.25rem;
+      box-shadow: var(--shadow);
+      font-size: clamp(2.25rem, 10vw, 3.5rem);
+      font-weight: 700;
+      line-height: 1.2;
+      text-align: center;
       white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
-    #study-intro { color: #666; margin: 0 0 0.5rem; }
-    #grades { display: flex; gap: 0.5rem; }
-    #grades button { flex: 1; }
-    #study-finish { text-align: center; padding-top: 1rem; }
+    /* The prompt floats in the free space above the controls; an intro banner stays attached to it. */
+    #study-front { margin-top: auto; }
+    #study-intro:not([hidden]) + #study-front { margin-top: 0; }
+    #study-back { color: var(--accent); }
+    #reveal { margin-top: auto; width: 100%; min-height: 3.5rem; font-size: 1.15rem; border-radius: 1rem; }
+    #grades { margin-top: auto; display: flex; gap: 0.75rem; }
+    #grades button { flex: 1; min-height: 3.5rem; font-size: 1.15rem; border-radius: 1rem; }
+    #grades [data-outcome="hit"] { background: var(--good); color: #fff; }
+    #grades [data-outcome="miss"] { background: var(--surface); border: 2px solid var(--border); }
+    #study-finish { margin: auto 0; text-align: center; padding: 1rem 0; }
     #study-finish p { margin: 0.5rem 0; }
-    #study-flavour { font-size: 3rem; animation: 1.2s ease-in-out infinite alternate; }
+    #study-flavour { font-size: 4.5rem; line-height: 1.2; animation: 1.2s ease-in-out infinite alternate; }
     #study-flavour:empty { display: none; }
-    #study-sessions { color: #666; }
+    #study-summary { font-size: 1.35rem; font-weight: 700; }
+    #study-sessions { color: var(--muted); }
+    #study-done { margin-top: 1rem; min-width: 10rem; }
     .bounce { animation-name: bounce; }
     .spin { animation-name: spin; animation-timing-function: linear; animation-direction: normal; animation-duration: 3s; }
     .rise { animation-name: rise; }
@@ -91,18 +231,13 @@
     @keyframes rise { from { transform: translateY(1rem); opacity: 0.4; } to { transform: translateY(-1rem); opacity: 1; } }
     @keyframes wiggle { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
     @keyframes pulse { from { transform: scale(0.8); } to { transform: scale(1.2); } }
-    .preview:empty { display: none; }
-    .preview { background: #fafafa; padding: 0.4rem; white-space: pre-wrap; }
-    @media (min-width: 40rem) {
-      .sides { display: flex; gap: 0.75rem; }
-      .side { flex: 1; min-width: 0; }
-    }
+    @media (prefers-reduced-motion: reduce) { #study-flavour { animation: none; } }
   </style>
 </head>
 <body>
   <header>
-    <h1>flashcards</h1>
     <button id="back" hidden>← decks</button>
+    <h1>flashcards</h1>
   </header>
   <p id="stale"></p>
   <p id="unmapped"></p>
@@ -115,7 +250,7 @@
   </section>
   <section id="study" hidden>
     <p id="study-count"></p>
-    <p id="study-intro" hidden>A new card: read both sides aloud, then press space</p>
+    <p id="study-intro" hidden>A new card! Read both sides aloud, then press Next</p>
     <div id="study-front" class="face"></div>
     <div id="study-back" class="face" hidden></div>
     <button id="reveal">Show answer</button>
