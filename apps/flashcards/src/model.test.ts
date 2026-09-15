@@ -58,6 +58,21 @@ test("warm-up is one card when only one is not due, and none on a deck never stu
   expect(planSession(progress, DECK, deck, NOW).warmup).toEqual([only]);
 });
 
+test("warm-up is skipped when nothing is due and nothing is new, so the plan is empty", () => {
+  const deck = new Y.Doc();
+  const progress = new Y.Doc();
+  const a = card(deck, 1);
+  const b = card(deck, 2);
+  studied(progress, a, { interval: 30 });
+  studied(progress, b, { interval: 10 });
+  expect(planSession(progress, DECK, deck, NOW)).toEqual({ warmup: [], review: [], fresh: [] });
+
+  // One due card brings the warm-ups back.
+  const due = card(deck, 3);
+  studied(progress, due, { due: NOW });
+  expect(planSession(progress, DECK, deck, NOW)).toEqual({ warmup: [a, b], review: [due], fresh: [] });
+});
+
 test("review is the due cards, most overdue first, and a due card is not fresh", () => {
   const deck = new Y.Doc();
   const progress = new Y.Doc();

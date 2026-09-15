@@ -202,7 +202,7 @@ export const FRESH_PER_DAY = 5;
 export const REVIEW_PER_SESSION = 20;
 
 export type Plan = {
-  warmup: string[]; // not due, longest interval first: two well-known cards
+  warmup: string[]; // not due, longest interval first: two well-known cards; empty when the other two are
   review: string[]; // due, most overdue first, cut at REVIEW_PER_SESSION
   fresh: string[]; // never studied, oldest first, cut at what is left of today's quota
 };
@@ -227,7 +227,9 @@ function introducedToday(progress: Y.Doc, deckId: string, now: number): number {
 }
 
 // One session of `deck` for this person at `now`. Order within each list is
-// deterministic; shuffling is the session's job, not the planner's.
+// deterministic; shuffling is the session's job, not the planner's. With
+// nothing due and nothing new the warm-up is skipped too, so the plan is empty
+// and Study cannot be pressed again and again for a two-card session.
 export function planSession(progress: Y.Doc, deckId: string, deck: Y.Doc, now: number): Plan {
   const known: [string, Review][] = [];
   const fresh: string[] = [];
@@ -238,9 +240,8 @@ export function planSession(progress: Y.Doc, deckId: string, deck: Y.Doc, now: n
   }
   const due = known.filter(([, r]) => r.due <= now).sort((a, b) => a[1].due - b[1].due);
   const notDue = known.filter(([, r]) => r.due > now).sort((a, b) => b[1].interval - a[1].interval);
-  return {
-    warmup: notDue.slice(0, 2).map(([id]) => id),
-    review: due.slice(0, REVIEW_PER_SESSION).map(([id]) => id),
-    fresh: fresh.slice(0, Math.max(0, FRESH_PER_DAY - introducedToday(progress, deckId, now))),
-  };
+  const review = due.slice(0, REVIEW_PER_SESSION).map(([id]) => id);
+  const freshToday = fresh.slice(0, Math.max(0, FRESH_PER_DAY - introducedToday(progress, deckId, now)));
+  const warmup = review.length || freshToday.length ? notDue.slice(0, 2).map(([id]) => id) : [];
+  return { warmup, review, fresh: freshToday };
 }
