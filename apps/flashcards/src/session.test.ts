@@ -175,17 +175,33 @@ test("groups appear in order under a fixed seed and are shuffled within the grou
   expect(again.current()).toEqual({ id: w[0], phase: "prompt" });
 });
 
-test("the summary counts distinct cards answered, how many were new, and what is left", () => {
+test("the summary counts distinct cards answered, how many were new, answers given, and answers still owed", () => {
   const session = startSession({ warmup: ["w"], review: ["r"], fresh: ["f"] }, seeded(8));
-  expect(session.summary()).toEqual({ answered: 0, fresh: 0, remaining: 3 });
+  // w and r are one answer each; f is an advance plus its learning steps.
+  expect(session.summary()).toEqual({ answered: 0, fresh: 0, done: 0, remaining: 2 + 1 + LEARNING_STEPS });
   session.answer("hit"); // w
-  expect(session.summary()).toEqual({ answered: 1, fresh: 0, remaining: 2 });
-  session.answer("miss"); // r, comes back
-  expect(session.summary()).toEqual({ answered: 2, fresh: 0, remaining: 2 });
+  expect(session.summary()).toEqual({ answered: 1, fresh: 0, done: 1, remaining: 1 + 1 + LEARNING_STEPS });
+  session.answer("miss"); // r, comes back as relearning: one answer still owed
+  expect(session.summary()).toEqual({ answered: 2, fresh: 0, done: 2, remaining: 1 + 1 + LEARNING_STEPS });
   session.answer("advance"); // f intro
-  expect(session.summary()).toEqual({ answered: 2, fresh: 1, remaining: 2 });
+  expect(session.summary()).toEqual({ answered: 2, fresh: 1, done: 3, remaining: 1 + LEARNING_STEPS });
   walk(session);
-  expect(session.summary()).toEqual({ answered: 3, fresh: 1, remaining: 0 });
+  expect(session.summary()).toEqual({ answered: 3, fresh: 1, done: 4 + LEARNING_STEPS, remaining: 0 });
+});
+
+test("every hit moves done up by one and remaining down by one", () => {
+  const fresh = Array.from({ length: FRESH_PER_DAY }, (_, i) => `f${i}`);
+  const session = startSession({ warmup: ["w"], review: ["r"], fresh }, seeded(9));
+  let { done, remaining } = session.summary();
+  const total = done + remaining;
+  for (let cur = session.current(); cur; cur = session.current()) {
+    session.answer(cur.phase === "intro" ? "advance" : "hit");
+    const next = session.summary();
+    expect(next.done).toBe(done + 1);
+    expect(next.remaining).toBe(remaining - 1);
+    ({ done, remaining } = next);
+  }
+  expect(done).toBe(total);
 });
 
 test("the random function defaults to Math.random", () => {

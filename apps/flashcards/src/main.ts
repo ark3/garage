@@ -45,6 +45,8 @@ const addCardEl = document.getElementById("add-card")!;
 const unmappedEl = document.getElementById("unmapped")!;
 const studyEl = document.getElementById("study")!;
 const countEl = document.getElementById("study-count")!;
+const progressEl = document.getElementById("study-progress")!;
+const barEl = progressEl.firstElementChild as HTMLElement;
 const introEl = document.getElementById("study-intro")!;
 const frontEl = document.getElementById("study-front")!;
 const answerEl = document.getElementById("study-back")!;
@@ -308,7 +310,7 @@ async function studyDeck(id: string) {
   backEl.hidden = false;
   countEl.textContent = "loading…";
   introEl.hidden = frontEl.hidden = answerEl.hidden = revealEl.hidden = gradesEl.hidden = true;
-  finishEl.hidden = true;
+  finishEl.hidden = progressEl.hidden = true;
   // The session is planned once, only after both docs have arrived: an empty
   // progress doc would make every card look new. Leaving while they load
   // closes them, and then there is nothing to show.
@@ -338,7 +340,12 @@ function renderStudy() {
     return;
   }
   shown = card;
-  countEl.textContent = `${session.summary().remaining} to go`;
+  // Answers still owed, not cards: a bar that fills a step on every tap is
+  // what keeps a short session from feeling endless.
+  const { done, remaining } = session.summary();
+  countEl.textContent = `${remaining} to go`;
+  barEl.style.width = `${(100 * done) / (done + remaining)}%`;
+  progressEl.hidden = false;
   introEl.hidden = answerEl.hidden = cur.phase !== "intro";
   frontEl.hidden = revealEl.hidden = false;
   gradesEl.hidden = true;
@@ -351,6 +358,7 @@ function renderFinish() {
   const { answered, fresh } = study!.session!.summary();
   introEl.hidden = frontEl.hidden = answerEl.hidden = revealEl.hidden = gradesEl.hidden = true;
   finishEl.hidden = false;
+  progressEl.hidden = true;
   countEl.textContent = "";
   // An empty plan reads as done, but it is not a session and gets no fanfare.
   const flavour = answered ? flavourFor(Date.now()) : undefined;

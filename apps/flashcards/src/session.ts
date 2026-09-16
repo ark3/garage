@@ -8,7 +8,7 @@
 //   startSession({ warmup, review, fresh }, random?) -> Session
 //   session.current()  -> { id, phase: "intro" | "prompt" } | undefined (done)
 //   session.answer(o)  -> { id, button } to write, or undefined
-//   session.summary()  -> { answered, fresh, remaining }
+//   session.summary()  -> { answered, fresh, done, remaining }
 //
 // Order is warm-up, then review, then fresh, each group shuffled with the
 // injected random (seeded in tests). Outcomes: "advance" leaves an intro,
@@ -20,6 +20,13 @@
 // not due, so its hit writes nothing (a Good from today would push a card the
 // scheduler had not asked about); its miss is a review miss. A card that comes
 // back re-enters REINSERT_DISTANCE positions ahead, or last if fewer remain.
+//
+// The summary's `done` is answers given and `remaining` is answers still
+// owed if every one from here lands: an intro is its advance plus its
+// learning steps, a learning card its steps left, anything else one. Every
+// answer moves `done` up by one; a miss moves `remaining` up too, so a
+// progress bar of done over done plus remaining advances on every tap and
+// only dips a little on a miss.
 
 import { FRESH_PER_DAY } from "./model";
 import type { Button } from "./sm2";
@@ -65,6 +72,18 @@ export function startSession(plan: Plan, random: () => number = Math.random): Se
   ];
   const answered = new Set<string>();
   let fresh = 0;
+  let done = 0;
+
+  const owed = (entry: Entry): number => {
+    switch (entry.kind) {
+      case "intro":
+        return 1 + LEARNING_STEPS;
+      case "learning":
+        return LEARNING_STEPS - entry.hits;
+      default:
+        return 1;
+    }
+  };
 
   const requeue = (entry: Entry) => {
     queue.splice(Math.min(REINSERT_DISTANCE, queue.length), 0, entry);
@@ -79,6 +98,7 @@ export function startSession(plan: Plan, random: () => number = Math.random): Se
 
     answer(outcome) {
       const entry = queue.shift()!;
+      done++;
       if (entry.kind === "intro") {
         fresh++;
         requeue({ id: entry.id, kind: "learning", hits: 0 });
@@ -105,7 +125,12 @@ export function startSession(plan: Plan, random: () => number = Math.random): Se
     },
 
     summary() {
-      return { answered: answered.size, fresh, remaining: queue.length };
+      return {
+        answered: answered.size,
+        fresh,
+        done,
+        remaining: queue.reduce((n, entry) => n + owed(entry), 0),
+      };
     },
   };
 }
