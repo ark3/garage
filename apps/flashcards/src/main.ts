@@ -13,6 +13,7 @@ import {
   deckDoc,
   decksMap,
   deleteCard,
+  deleteDeck,
   gradeCard,
   indexDoc,
   listCards,
@@ -42,6 +43,7 @@ const titleEl = document.getElementById("deck-title") as HTMLInputElement;
 const newEl = document.getElementById("new") as HTMLFormElement;
 const nameEl = document.getElementById("deck-name") as HTMLInputElement;
 const addCardEl = document.getElementById("add-card")!;
+const deleteDeckEl = document.getElementById("delete-deck")!;
 const unmappedEl = document.getElementById("unmapped")!;
 const studyEl = document.getElementById("study")!;
 const countEl = document.getElementById("study-count")!;
@@ -174,6 +176,16 @@ titleEl.addEventListener("input", () => {
 addCardEl.addEventListener("click", () => {
   if (!me.current || !open) return;
   addCard(open.held.doc, { kind: "plain", text: "" }, { kind: "plain", text: "" });
+});
+
+// Drops the deck from the index and returns to the list; the deck doc itself
+// stays where it is, as deleteDeck documents. A confirm stands between a
+// stray thumb and losing a deck, since the list holds hand-typed cards.
+deleteDeckEl.addEventListener("click", () => {
+  if (!me.current || !open) return;
+  if (!confirm(`Delete "${titleEl.value}"?`)) return;
+  deleteDeck(doc, open.id);
+  showList();
 });
 
 // An abc side previews as engraved notation. The renderer is by far this app's

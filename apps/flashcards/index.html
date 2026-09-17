@@ -172,6 +172,14 @@
       border-radius: var(--radius);
       color: var(--muted);
     }
+    #delete-deck {
+      display: block;
+      margin: 1.5rem auto 0;
+      background: none;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    #delete-deck:hover { color: var(--danger); filter: none; }
     @media (min-width: 40rem) {
       .sides { display: flex; gap: 1rem; }
       .side { flex: 1; min-width: 0; }
@@ -272,6 +280,7 @@
     <input id="deck-title" aria-label="Deck name">
     <ul id="cards"></ul>
     <button id="add-card">Add card</button>
+    <button id="delete-deck">Delete deck</button>
   </section>
   <script type="module" src="main.js"></script>
 </body>
