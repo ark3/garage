@@ -114,8 +114,11 @@
       font-size: 1.1rem;
       font-weight: 700;
     }
-    #deck-list .by { grid-area: by; color: var(--muted); font-size: 0.8rem; }
+    #deck-list .meta { grid-area: by; display: flex; flex-wrap: wrap; column-gap: 0.6rem; font-size: 0.8rem; color: var(--muted); }
     #deck-list .by::before { content: "by "; }
+    #deck-list .status { color: var(--accent); font-weight: 700; }
+    #deck-list .done .status { color: var(--good); }
+    #deck-list .done .study { background: var(--surface-2); color: var(--muted); }
     #deck-list .copy { grid-area: copy; background: none; color: var(--muted); padding: 0.4rem 0.6rem; }
     #deck-list .study { grid-area: study; }
     #new { display: flex; gap: 0.5rem; margin-top: 1rem; }

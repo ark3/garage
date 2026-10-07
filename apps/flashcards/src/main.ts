@@ -1,7 +1,9 @@
 // Flashcards, the decks screen: the index doc (the app doc) lists the decks,
 // and a deck's cards live in a doc of their own, opened while that deck is on
 // screen and closed on the way out. Studying is a separate screen over the same
-// deck doc plus the person's progress doc, both let go on the way back.
+// deck doc plus the person's progress doc, both let go on the way back. The list
+// itself also holds every deck doc and the person's progress doc, to show which
+// decks have anything to study today.
 
 import { openApp, openPersistedDoc } from "@garage/sync";
 import {
@@ -24,6 +26,7 @@ import {
   sessionsTotal,
   setSide,
   type Card,
+  type Plan,
   type Side,
   type SideKind,
 } from "./model";
@@ -68,6 +71,7 @@ function renderIdentity() {
     ? ""
     : `${actor} has no handle in the actors directory, so nothing here can be` +
       ` created or edited and there is no handle to study under`;
+  watchDecks();
   renderDecks();
   renderCards();
 }
@@ -78,7 +82,66 @@ let stalled = false;
 stale.then(() => {
   stalled = true;
   document.getElementById("stale")!.textContent = "this app is out of date, reload";
+  watchDecks();
   showList();
+});
+
+// --- Deck status: whether a deck has anything to study today, for the person
+// on this device, decided by the same planner Study uses so the two never
+// disagree. That needs every deck doc and the progress doc, so they are held
+// for as long as the list could show them, following the index. A deck shows
+// no status until both have arrived from the server, since a doc still empty
+// would plan as nothing to study.
+type Watched = { held: Held; arrived: boolean };
+let watchedProgress: (Watched & { handle: string }) | null = null;
+const watchedDecks = new Map<string, Watched>();
+
+function watch(name: string): Watched {
+  const w = { held: openPersistedDoc(name), arrived: false };
+  synced(w.held).then(() => {
+    w.arrived = true;
+    renderDecksSoon();
+  });
+  w.held.doc.on("update", renderDecksSoon);
+  return w;
+}
+
+function watchDecks() {
+  const handle = stalled ? undefined : me.current?.handle;
+  if (watchedProgress?.handle !== handle) {
+    watchedProgress?.held.close();
+    watchedProgress = handle ? Object.assign(watch(progressDoc(handle)), { handle }) : null;
+  }
+  const ids = new Set(handle ? decksMap(doc).keys() : []);
+  for (const [id, w] of watchedDecks) {
+    if (ids.has(id)) continue;
+    w.held.close();
+    watchedDecks.delete(id);
+  }
+  for (const id of ids) if (!watchedDecks.has(id)) watchedDecks.set(id, watch(deckDoc(id)));
+}
+
+function deckPlan(id: string): Plan | undefined {
+  const deck = watchedDecks.get(id);
+  if (!watchedProgress?.arrived || !deck?.arrived) return;
+  return planSession(watchedProgress.held.doc, id, deck.held.doc, Date.now());
+}
+
+// Every edit to any held doc lands here, and a thousand-card deck arrives in
+// pieces; one rebuild per frame is plenty.
+let renderPending = false;
+function renderDecksSoon() {
+  if (renderPending) return;
+  renderPending = true;
+  requestAnimationFrame(() => {
+    renderPending = false;
+    renderDecks();
+  });
+}
+
+// The day can turn while the app sits in the background.
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) renderDecks();
 });
 
 // --- Deck list
@@ -92,9 +155,25 @@ function renderDecks() {
         name.className = "name";
         name.textContent = deck.name;
         name.addEventListener("click", () => openDeck(id, deck.name));
+        const meta = document.createElement("div");
+        meta.className = "meta";
         const by = document.createElement("span");
         by.className = "by";
         by.textContent = deck.createdBy;
+        meta.append(by);
+        const plan = deckPlan(id);
+        if (plan) {
+          const due = plan.review.length;
+          const fresh = plan.fresh.length;
+          const status = document.createElement("span");
+          status.className = "status";
+          status.textContent =
+            due || fresh
+              ? [due && `${due} due`, fresh && `${fresh} new`].filter(Boolean).join(" · ")
+              : "done for today ✓";
+          li.classList.toggle("done", !due && !fresh);
+          meta.append(status);
+        }
         const copy = document.createElement("button");
         copy.className = "copy";
         copy.textContent = "Copy";
@@ -103,7 +182,7 @@ function renderDecks() {
         study.className = "study";
         study.textContent = "Study";
         study.addEventListener("click", () => studyDeck(id));
-        li.append(name, by, copy, study);
+        li.append(name, meta, copy, study);
         return li;
       }),
   );
@@ -152,6 +231,7 @@ function showList() {
   deckEl.hidden = true;
   studyEl.hidden = true;
   backEl.hidden = true;
+  renderDecks();
 }
 
 function openDeck(id: string, name: string) {
@@ -441,6 +521,7 @@ doneEl.addEventListener("click", showList);
 // Any index change can reorder the list or rename the open deck; the list is
 // small, so just re-render it.
 decksMap(doc).observeDeep(() => {
+  watchDecks();
   renderDecks();
   const name = open && decksMap(doc).get(open.id)?.get("name");
   if (typeof name === "string" && document.activeElement !== titleEl) titleEl.value = name;
