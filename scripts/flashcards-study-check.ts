@@ -71,10 +71,12 @@ await until(
   "every answer reaches the server as a log line at Good's quality",
 );
 
+// Due is by the local day, so the last moment of today still owes nothing.
+const lastOfToday = new Date(now).setHours(23, 59, 59, 999);
 await until(
   () =>
     dueCards(alphaFresh.doc, deckId, deckFresh.doc, now).length === 0 &&
-    dueCards(alphaFresh.doc, deckId, deckFresh.doc, now + DAY_MS - 1000).length === 0,
+    dueCards(alphaFresh.doc, deckId, deckFresh.doc, lastOfToday).length === 0,
   "alpha owes nothing more today",
 );
 

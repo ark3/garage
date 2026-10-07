@@ -186,12 +186,21 @@ export function sessionsTotal(progress: Y.Doc): number {
   return new Set(reviewLog(progress).map((entry) => new Date(entry.at).toDateString())).size;
 }
 
+// Due is by the day, as in Anki: SM-2 stamps `due` with the minute of the
+// answer, so a card due any time today is due now, and a drill run a little
+// earlier than yesterday's still meets yesterday's cards.
+function isDue(review: Review, now: number): boolean {
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  return review.due < midnight.getTime();
+}
+
 // Card ids of `deck` that this person owes at `now`: never reviewed, or due.
 export function dueCards(progress: Y.Doc, deckId: string, deck: Y.Doc, now: number): string[] {
   return listCards(deck)
     .filter(([cardId]) => {
       const review = getReview(progress, deckId, cardId);
-      return review === undefined || review.due <= now;
+      return review === undefined || isDue(review, now);
     })
     .map(([cardId]) => cardId);
 }
@@ -238,8 +247,8 @@ export function planSession(progress: Y.Doc, deckId: string, deck: Y.Doc, now: n
     if (review) known.push([cardId, review]);
     else fresh.push(cardId);
   }
-  const due = known.filter(([, r]) => r.due <= now).sort((a, b) => a[1].due - b[1].due);
-  const notDue = known.filter(([, r]) => r.due > now).sort((a, b) => b[1].interval - a[1].interval);
+  const due = known.filter(([, r]) => isDue(r, now)).sort((a, b) => a[1].due - b[1].due);
+  const notDue = known.filter(([, r]) => !isDue(r, now)).sort((a, b) => b[1].interval - a[1].interval);
   const review = due.slice(0, REVIEW_PER_SESSION).map(([id]) => id);
   const freshToday = fresh.slice(0, Math.max(0, FRESH_PER_DAY - introducedToday(progress, deckId, now)));
   const warmup = review.length || freshToday.length ? notDue.slice(0, 2).map(([id]) => id) : [];

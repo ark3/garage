@@ -90,6 +90,22 @@ test("review is the due cards, most overdue first, and a due card is not fresh",
   expect(plan.fresh).toEqual([]);
 });
 
+test("due is by the local day: later today is due now, midnight tonight is not", () => {
+  const deck = new Y.Doc();
+  const progress = new Y.Doc();
+  const at = (hour: number, minute = 0) => new Date(2026, 0, 5, hour, minute).getTime();
+  const laterToday = card(deck, 1);
+  const lastMinute = card(deck, 2);
+  const tomorrow = card(deck, 3);
+  studied(progress, laterToday, { due: at(7, 42) });
+  studied(progress, lastMinute, { due: at(23, 59) });
+  studied(progress, tomorrow, { due: at(24) });
+
+  const plan = planSession(progress, DECK, deck, at(7));
+  expect(plan.review).toEqual([laterToday, lastMinute]);
+  expect(plan.warmup).toEqual([tomorrow]);
+});
+
 test("a backed-up queue is cut at the session cap, keeping the most overdue", () => {
   const deck = new Y.Doc();
   const progress = new Y.Doc();
