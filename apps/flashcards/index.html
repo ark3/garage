@@ -47,6 +47,8 @@
       margin-bottom: 0.75rem;
     }
     h1 { flex: 1; margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.01em; }
+    /* A deck can run long; the way back stays on screen while editing it. */
+    body:has(#deck:not([hidden])) header { position: sticky; top: 0; z-index: 1; padding: 0.5rem 0; margin-top: -0.5rem; background: var(--bg); }
     #stale:empty, #unmapped:empty { display: none; }
     #stale, #unmapped {
       margin: 0 0 0.75rem;
@@ -137,6 +139,7 @@
       background: transparent;
     }
     #deck-title:focus { box-shadow: none; border-bottom-color: var(--accent); }
+    #card-count { margin: -0.5rem 0 0.75rem; color: var(--muted); font-size: 0.9rem; font-weight: 600; }
     #cards { display: grid; gap: 0.75rem; }
     #cards li {
       padding: 0.6rem 1rem 1rem;
@@ -144,7 +147,8 @@
       border-radius: var(--radius);
       box-shadow: var(--shadow);
     }
-    .card-head { display: flex; justify-content: flex-end; margin-right: -0.5rem; }
+    .card-head { display: flex; justify-content: space-between; align-items: center; margin-right: -0.5rem; }
+    .card-num { color: var(--muted); font-size: 0.85rem; font-weight: 700; }
     .delete { background: none; color: var(--muted); padding: 0.2rem 0.5rem; min-height: 0; font-size: 1.25rem; line-height: 1; }
     .delete:hover { color: var(--danger); filter: none; }
     .side {
@@ -281,6 +285,7 @@
   </section>
   <section id="deck" hidden>
     <input id="deck-title" aria-label="Deck name">
+    <p id="card-count"></p>
     <ul id="cards"></ul>
     <button id="add-card">Add card</button>
     <button id="delete-deck">Delete deck</button>

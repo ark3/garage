@@ -43,6 +43,7 @@ const deckListEl = document.getElementById("deck-list")!;
 const cardsEl = document.getElementById("cards")!;
 const backEl = document.getElementById("back") as HTMLButtonElement;
 const titleEl = document.getElementById("deck-title") as HTMLInputElement;
+const cardCountEl = document.getElementById("card-count")!;
 const newEl = document.getElementById("new") as HTMLFormElement;
 const nameEl = document.getElementById("deck-name") as HTMLInputElement;
 const addCardEl = document.getElementById("add-card")!;
@@ -217,7 +218,7 @@ async function copyDeck(id: string, name: string) {
 
 // --- Deck editor: one deck doc held at a time.
 let open: { id: string; held: Held } | null = null;
-let rows = new Map<string, { el: HTMLLIElement; show(card: Card): void }>();
+let rows = new Map<string, { el: HTMLLIElement; num: HTMLElement; show(card: Card): void }>();
 
 function showList() {
   open?.held.close();
@@ -346,6 +347,8 @@ function cardRow(id: string) {
   const el = document.createElement("li");
   const head = document.createElement("div");
   head.className = "card-head";
+  const num = document.createElement("span");
+  num.className = "card-num";
   const del = document.createElement("button");
   del.className = "delete";
   del.textContent = "×";
@@ -354,7 +357,7 @@ function cardRow(id: string) {
     if (!me.current || !open) return;
     deleteCard(open.held.doc, id);
   });
-  head.append(del);
+  head.append(num, del);
   const sides = document.createElement("div");
   sides.className = "sides";
   const front = sideEditor(id, "front");
@@ -363,6 +366,7 @@ function cardRow(id: string) {
   el.append(head, sides);
   return {
     el,
+    num,
     show(card: Card) {
       front.show(card.front);
       back.show(card.back);
@@ -373,14 +377,17 @@ function cardRow(id: string) {
 // Rows are rebuilt only when cards appear or vanish; otherwise the fields that
 // exist are refreshed in place, so a keystroke never interrupts itself and a
 // remote edit to the other side still lands. A thousand-card deck arrives over
-// a second or two, and the rows fill in as it does.
+// a second or two, and the rows fill in as it does. Numbers are positions, there
+// to keep one's place, so they are handed out again whenever the rows are.
 function renderCards() {
   if (!open) return;
   const cards = listCards(open.held.doc);
   if (cards.length !== rows.size || cards.some(([id]) => !rows.has(id))) {
     rows = new Map(cards.map(([id]) => [id, cardRow(id)]));
+    [...rows.values()].forEach((row, i) => (row.num.textContent = `${i + 1}`));
     cardsEl.replaceChildren(...[...rows.values()].map((row) => row.el));
   }
+  cardCountEl.textContent = `${cards.length} card${cards.length === 1 ? "" : "s"}`;
   for (const [id, card] of cards) rows.get(id)!.show(card);
 }
 
