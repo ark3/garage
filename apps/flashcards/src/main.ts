@@ -217,7 +217,7 @@ async function copyDeck(id: string, name: string) {
 }
 
 // --- Deck editor: one deck doc held at a time.
-let open: { id: string; held: Held } | null = null;
+let open: { id: string; held: Held; loaded: boolean } | null = null;
 let rows = new Map<string, { el: HTMLLIElement; num: HTMLElement; show(card: Card): void }>();
 
 function showList() {
@@ -235,16 +235,26 @@ function showList() {
   renderDecks();
 }
 
-function openDeck(id: string, name: string) {
+// The cards, and the controls under them, appear together once the deck has
+// arrived from the server; until then an empty list would leave those controls
+// sitting under the title. The name is already known from the index.
+async function openDeck(id: string, name: string) {
   if (stalled) return;
   showList();
-  open = { id, held: openPersistedDoc(deckDoc(id)) };
+  const held = openPersistedDoc(deckDoc(id));
+  open = { id, held, loaded: false };
   titleEl.value = name;
-  cardsMap(open.held.doc).observeDeep(renderCards);
-  renderCards();
+  cardCountEl.textContent = "loading…";
+  addCardEl.hidden = deleteDeckEl.hidden = true;
+  cardsMap(held.doc).observeDeep(renderCards);
   decksEl.hidden = true;
   deckEl.hidden = false;
   backEl.hidden = false;
+  await synced(held);
+  if (open?.held !== held) return;
+  open.loaded = true;
+  addCardEl.hidden = deleteDeckEl.hidden = false;
+  renderCards();
 }
 
 backEl.addEventListener("click", showList);
@@ -376,11 +386,10 @@ function cardRow(id: string) {
 
 // Rows are rebuilt only when cards appear or vanish; otherwise the fields that
 // exist are refreshed in place, so a keystroke never interrupts itself and a
-// remote edit to the other side still lands. A thousand-card deck arrives over
-// a second or two, and the rows fill in as it does. Numbers are positions, there
-// to keep one's place, so they are handed out again whenever the rows are.
+// remote edit to the other side still lands. Numbers are positions, there to
+// keep one's place, so they are handed out again whenever the rows are.
 function renderCards() {
-  if (!open) return;
+  if (!open?.loaded) return;
   const cards = listCards(open.held.doc);
   if (cards.length !== rows.size || cards.some(([id]) => !rows.has(id))) {
     rows = new Map(cards.map(([id]) => [id, cardRow(id)]));
