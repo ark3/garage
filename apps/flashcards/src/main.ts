@@ -404,7 +404,6 @@ function renderCards() {
 // session. An unmapped identity has no handle, so no progress doc and no queue;
 // the message above says so and this refuses, like every other acting control.
 let study: { deckId: string; deck: Held; progress: Held; session?: Session } | null = null;
-let shown: Card;
 
 async function studyDeck(id: string) {
   const m = me.current;
@@ -447,19 +446,21 @@ function renderStudy() {
     renderStudy();
     return;
   }
-  shown = card;
   // Answers still owed, not cards: a bar that fills a step on every tap is
   // what keeps a short session from feeling endless.
   const { done, remaining } = session.summary();
   countEl.textContent = `${remaining} to go`;
   barEl.style.width = `${(100 * done) / (done + remaining)}%`;
   progressEl.hidden = false;
-  introEl.hidden = answerEl.hidden = cur.phase !== "intro";
-  frontEl.hidden = revealEl.hidden = false;
+  introEl.hidden = cur.phase !== "intro";
+  frontEl.hidden = answerEl.hidden = revealEl.hidden = false;
   gradesEl.hidden = true;
   revealEl.textContent = cur.phase === "intro" ? "Next" : "Show answer";
+  // The back is laid out with the front from the start and only veiled until
+  // the reveal, so showing it moves nothing that is already on screen.
+  answerEl.classList.toggle("veiled", cur.phase !== "intro");
   renderSide(frontEl, card.front);
-  if (cur.phase === "intro") renderSide(answerEl, card.back);
+  renderSide(answerEl, card.back);
 }
 
 function renderFinish() {
@@ -493,9 +494,9 @@ function reveal() {
     return;
   }
   if (!gradesEl.hidden) return;
-  renderSide(answerEl, shown.back);
+  answerEl.classList.remove("veiled");
   revealEl.hidden = true;
-  answerEl.hidden = gradesEl.hidden = false;
+  gradesEl.hidden = false;
   gradesOpenAt = Date.now() + GRADE_LOCKOUT;
 }
 
